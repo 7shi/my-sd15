@@ -1,5 +1,4 @@
 import argparse
-import os
 
 
 def main():
@@ -15,23 +14,17 @@ def main():
     parser.add_argument("-o", "--output", type=str, default="output.png")
     args = parser.parse_args()
 
-    from my_sd15.loader import DEFAULT_WEIGHTS_DIR
-    from my_sd15.pipeline import generate
+    from my_sd15.loader import load_model
 
-    if args.model is not None:
-        weights_base = os.path.normpath(os.path.join(os.path.dirname(DEFAULT_WEIGHTS_DIR), ".."))
-        weights_dir = os.path.join(weights_base, args.model)
-    else:
-        weights_dir = None
+    model = load_model(model_id=args.model)
 
-    image = generate(
+    image = model.generate(
         prompt=args.prompt,
         seed=args.seed,
         steps=args.steps,
         cfg_scale=args.cfg,
         height=args.size,
         width=args.size,
-        weights_dir=weights_dir,
         show_progress=True,
     )
     image.save(args.output)

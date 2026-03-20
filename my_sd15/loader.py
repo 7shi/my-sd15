@@ -58,3 +58,30 @@ def load_unet(weights_dir):
     state = load_safetensors(path)
     model = UNet(state)
     return model
+
+
+def _resolve_weights_dir(model_id=None):
+    """Resolve model_id to a weights directory path."""
+    if model_id is None:
+        return DEFAULT_WEIGHTS_DIR
+    weights_base = os.path.normpath(os.path.join(os.path.dirname(DEFAULT_WEIGHTS_DIR), ".."))
+    return os.path.join(weights_base, model_id)
+
+
+def load_model(model_id=None):
+    """Load all SD 1.5 components and return an SD15Model instance."""
+    from my_sd15.model import SD15Model
+    from my_sd15.tokenizer import CLIPTokenizer
+
+    weights_dir = _resolve_weights_dir(model_id)
+
+    tokenizer_dir = os.path.join(weights_dir, "tokenizer")
+    if not os.path.isdir(tokenizer_dir):
+        tokenizer_dir = os.path.join(DEFAULT_WEIGHTS_DIR, "tokenizer")
+
+    tokenizer = CLIPTokenizer.from_pretrained(tokenizer_dir)
+    text_encoder = load_clip_text_model(weights_dir)
+    unet = load_unet(weights_dir)
+    vae = load_vae_decoder(weights_dir)
+
+    return SD15Model(tokenizer=tokenizer, text_encoder=text_encoder, unet=unet, vae=vae)
