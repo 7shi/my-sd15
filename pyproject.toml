@@ -3,6 +3,7 @@ name = "my-sd15"
 version = "0.1.0"
 description = "SD 1.5 clean-room reimplementation"
 readme = "README.md"
+repository = "https://github.com/7shi/my-sd15"
 requires-python = ">=3.13"
 dependencies = [
     "numpy>=2.4.3",
