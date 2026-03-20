@@ -6,8 +6,6 @@ import json
 import pytest
 from safetensors import safe_open
 
-from my_sd15.loader import SINGLE_FILE_PATH, load_from_single_file
-
 
 TESTDATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "testdata")
 
@@ -20,16 +18,6 @@ def load_testdata(name):
         for key in f.keys():
             tensors[key] = f.get_tensor(key)
     return tensors
-
-
-def single_file_available():
-    return os.path.exists(SINGLE_FILE_PATH)
-
-
-@pytest.fixture(scope="session")
-def models():
-    clip, unet, vae = load_from_single_file()
-    return clip, unet, vae
 
 
 @pytest.fixture(scope="session")

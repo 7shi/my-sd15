@@ -5,8 +5,12 @@ import os
 import pytest
 import torch
 
-from tests.conftest import single_file_available
-from my_sd15.loader import DEFAULT_WEIGHTS_DIR
+from my_sd15.loader import (
+    DEFAULT_WEIGHTS_DIR,
+    load_clip_text_model,
+    load_unet,
+    load_vae_decoder,
+)
 from my_sd15.tokenizer import CLIPTokenizer
 from my_sd15.scheduler import DDIMScheduler
 
@@ -14,14 +18,22 @@ ATOL_LATENT = 1e-3
 ATOL_IMAGE = 1e-2
 
 
-@pytest.mark.skipif(not single_file_available(), reason="weights not found")
+def weights_available():
+    return os.path.exists(
+        os.path.join(DEFAULT_WEIGHTS_DIR, "unet", "diffusion_pytorch_model.safetensors")
+    )
+
+
+@pytest.mark.skipif(not weights_available(), reason="weights not found")
 class TestPipelineStepByStep:
     @pytest.fixture(autouse=True)
-    def setup(self, models):
-        self.clip, self.unet, self.vae = models
+    def setup(self):
         self.tokenizer = CLIPTokenizer.from_pretrained(
             os.path.join(DEFAULT_WEIGHTS_DIR, "tokenizer")
         )
+        self.clip = load_clip_text_model(DEFAULT_WEIGHTS_DIR)
+        self.unet = load_unet(DEFAULT_WEIGHTS_DIR)
+        self.vae = load_vae_decoder(DEFAULT_WEIGHTS_DIR)
         self.scheduler = DDIMScheduler()
         self.scheduler.set_timesteps(10)
 

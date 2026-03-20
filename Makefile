@@ -21,6 +21,7 @@ download: download-sd15
 
 download-sd15:
 	$(call download_model,$(SD15_ID),v1-5-pruned-emaonly.safetensors tokenizer/vocab.json tokenizer/merges.txt)
+	uv run single2dir.py weights/$(SD15_ID)/v1-5-pruned-emaonly.safetensors
 
 run:
 	uv run my-sd15 --prompt "a cat sitting on a windowsill" --seed 42 --steps 10 --cfg 7.5 -o output.png

@@ -1,18 +1,26 @@
 """Verify CLIP text encoder against test data."""
 
+import os
+
 import pytest
 import torch
 
-from tests.conftest import single_file_available
+from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_clip_text_model
 
 ATOL = 1e-4
 
 
-@pytest.mark.skipif(not single_file_available(), reason="weights not found")
+def weights_available():
+    return os.path.exists(
+        os.path.join(DEFAULT_WEIGHTS_DIR, "text_encoder", "model.safetensors")
+    )
+
+
+@pytest.mark.skipif(not weights_available(), reason="weights not found")
 class TestCLIPTextModel:
     @pytest.fixture(autouse=True)
-    def setup(self, models):
-        self.model = models[0]
+    def setup(self):
+        self.model = load_clip_text_model(DEFAULT_WEIGHTS_DIR)
 
     def test_output_shape(self, clip_data):
         ids = clip_data["cond_ids"].tolist()
