@@ -36,7 +36,7 @@ uv run my-sd15 -m genai-archive/anything-v5 -p "a cat sitting on a windowsill" -
 
 ## デノイジング過程の可視化
 
-`gen_steps.py` はデノイジングループの各ステップで中間画像を `steps/` に保存する。各ステップで latents の先頭 3 チャンネルをそのまま画像化したもの（`xx-1.png`）と、VAE でデコードしたもの（`xx-2.jpg`）の 2 種類を出力する。Sixel 対応ターミナルではリアルタイムに表示される。
+`gen_steps.py` はデノイジングループの各ステップで中間画像を `steps/` に保存する。各ステップで latents の先頭 3 チャンネルをそのまま画像化したもの（`xx-1.png`）と、VAE でデコードしたもの（`xx-2.jpg`）の 2 種類を出力する。Sixel 対応ターミナルではリアルタイムに表示される。生成結果は [`steps/README.md`](steps/README.md) で確認できる。
 
 ```bash
 uv run gen_steps.py
