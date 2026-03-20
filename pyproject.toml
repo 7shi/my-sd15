@@ -10,6 +10,7 @@ dependencies = [
     "pillow>=12.1.1",
     "regex>=2026.2.28",
     "safetensors>=0.7.0",
+    "sixel",
     "torch>=2.10.0",
     "tqdm>=4.67.3",
 ]
@@ -28,3 +29,6 @@ my-sd15 = "my_sd15:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["my_sd15"]
+
+[tool.uv.sources]
+sixel = { git = "https://github.com/sbamboo/python-sixel.git" }

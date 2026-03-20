@@ -1,11 +1,25 @@
 """SD 1.5 model container with text-to-image generation."""
 
+import sys
 from dataclasses import dataclass
 
 import torch
 from PIL import Image
+from sixel.converter import SixelConverter
 
 from my_sd15.tokenizer import CLIPTokenizer
+
+
+def decode_to_image(decoded):
+    image = ((decoded + 1.0) / 2.0).clamp(0.0, 1.0)
+    image = (image * 255).byte().permute(1, 2, 0).contiguous()
+    return Image.frombytes("RGB", (image.shape[1], image.shape[0]), bytes(image.untyped_storage()))
+
+
+def save_show_image(path, image):
+    image.save(path)
+    SixelConverter(path).write(sys.stdout)
+    print()
 
 
 @dataclass
@@ -35,8 +49,4 @@ class SD15Model:
                 noise_pred = noise_uncond + cfg_scale * (noise_cond - noise_uncond)
                 latents = self.scheduler.step(noise_pred, t_int, latents)
 
-            decoded = self.vae(latents / 0.18215)
-
-        image = ((decoded + 1.0) / 2.0).clamp(0.0, 1.0)
-        image = (image * 255).byte().permute(1, 2, 0).contiguous()
-        return Image.frombytes("RGB", (image.shape[1], image.shape[0]), bytes(image.untyped_storage()))
+        return decode_to_image(self.vae(latents / 0.18215))

@@ -17,6 +17,7 @@ def main():
     args = parser.parse_args()
 
     from my_sd15.loader import load_model
+    from my_sd15.model import save_show_image
 
     model = load_model(model_id=args.model)
 
@@ -30,5 +31,5 @@ def main():
         width=args.size,
         show_progress=True,
     )
-    image.save(args.output)
+    save_show_image(args.output, image)
     print(f"Saved to {args.output}")
