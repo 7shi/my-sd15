@@ -61,13 +61,26 @@ v1-5-pruned-emaonly.safetensors             # All model weights in one file (~4.
 The single file contains 1145 keys using the original LDM naming convention.
 Use `load_from_single_file()` in `loader.py` to load all three models at once.
 
-#### Key prefixes by component
+**Note:** The tokenizer (`vocab.json`, `merges.txt`) is **not** included in the
+single file and must be loaded separately from the `tokenizer/` directory.
 
-| Component | Prefix | Keys |
+#### Key inventory
+
+Of the 1145 keys, 1022 are used by the inference code:
+
+| Component | Prefix | Total keys | Used |
+|---|---|---|---|
+| U-Net | `model.diffusion_model.` | 686 | 686 |
+| CLIP text encoder | `cond_stage_model.transformer.` | 197 | 196 |
+| VAE | `first_stage_model.` | 248 | 140 |
+
+The remaining 123 unused keys:
+
+| Category | Keys | Description |
 |---|---|---|
-| U-Net | `model.diffusion_model.` | 686 |
-| CLIP text encoder | `cond_stage_model.transformer.` | 197 |
-| VAE | `first_stage_model.` | 248 |
+| VAE encoder | 108 | `first_stage_model.encoder.*` + `first_stage_model.quant_conv.*` — encoding path, not needed for inference |
+| Scheduler precomputed | 14 | `alphas_cumprod`, `betas`, `sqrt_*`, `posterior_*`, etc. — recomputed from scratch by `DDIMScheduler` |
+| CLIP position_ids | 1 | `cond_stage_model.transformer.text_model.embeddings.position_ids` — integer index tensor, not used |
 
 #### Key name differences from split-file format
 

@@ -6,7 +6,7 @@ SD15_ID = stable-diffusion-v1-5/stable-diffusion-v1-5
 define download_model
 	@mkdir -p weights/$(1)
 	@BASE=https://huggingface.co/$(1)/resolve/main; \
-	dl() { f=weights/$(1)/$$1; if [ -f "$$f" ]; then echo "  skip: $$f"; else curl -L -o "$$f" "$$BASE/$$1"; fi; }; \
+	dl() { f=weights/$(1)/$$1; mkdir -p $$(dirname $$f); if [ -f "$$f" ]; then echo "  skip: $$f"; else curl -L -o "$$f" "$$BASE/$$1"; fi; }; \
 	for f in $(2); do dl $$f; done
 endef
 
@@ -20,7 +20,7 @@ help:
 download: download-sd15
 
 download-sd15:
-	$(call download_model,$(SD15_ID),v1-5-pruned-emaonly.safetensors)
+	$(call download_model,$(SD15_ID),v1-5-pruned-emaonly.safetensors tokenizer/vocab.json tokenizer/merges.txt)
 
 run:
 	uv run my-sd15 --prompt "a cat sitting on a windowsill" --seed 42 --steps 10 --cfg 7.5 -o output.png
