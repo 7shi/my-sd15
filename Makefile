@@ -29,7 +29,7 @@ download-any5:
 	uv run single2dir.py --fp16 weights/$(ANY5_ID)/anything-v5.safetensors
 
 run:
-	uv run my-sd15 -m genai-archive/anything-v5 --prompt "a cat sitting on a windowsill" --seed 42 --steps 10 --cfg 7.5 -o output.png
+	uv run my-sd15 -m genai-archive/anything-v5 --prompt "a cat sitting on a windowsill" --seed 123 --steps 10 --cfg 7.5 -o output.png
 
 clean:
 	rm -rf weights
