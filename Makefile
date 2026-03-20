@@ -20,8 +20,7 @@ help:
 download: download-sd15
 
 download-sd15:
-	$(call download_model,$(SD15_ID),v1-5-pruned-emaonly.safetensors tokenizer/vocab.json tokenizer/merges.txt)
-	uv run single2dir.py weights/$(SD15_ID)/v1-5-pruned-emaonly.safetensors
+	$(call download_model,$(SD15_ID),tokenizer/vocab.json tokenizer/merges.txt text_encoder/model.fp16.safetensors unet/diffusion_pytorch_model.fp16.safetensors vae/diffusion_pytorch_model.fp16.safetensors)
 
 run:
 	uv run my-sd15 --prompt "a cat sitting on a windowsill" --seed 42 --steps 10 --cfg 7.5 -o output.png

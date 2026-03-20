@@ -10,6 +10,7 @@ from my_sd15.loader import (
     load_clip_text_model,
     load_unet,
     load_vae_decoder,
+    _resolve_path,
 )
 from my_sd15.tokenizer import CLIPTokenizer
 from my_sd15.scheduler import DDIMScheduler
@@ -20,7 +21,7 @@ ATOL_IMAGE = 1e-2
 
 def weights_available():
     return os.path.exists(
-        os.path.join(DEFAULT_WEIGHTS_DIR, "unet", "diffusion_pytorch_model.safetensors")
+        _resolve_path(os.path.join(DEFAULT_WEIGHTS_DIR, "unet", "diffusion_pytorch_model.safetensors"))
     )
 
 

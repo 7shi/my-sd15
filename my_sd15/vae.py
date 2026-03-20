@@ -35,12 +35,12 @@ class VaeAttention:
         C, H, W = x.shape
         h = group_norm(x, s[p + "group_norm.weight"], s[p + "group_norm.bias"], 32)
         h = h.reshape(C, H * W).T  # (H*W, C)
-        q = linear(h, s[p + "query.weight"], s[p + "query.bias"])
-        k = linear(h, s[p + "key.weight"], s[p + "key.bias"])
-        v = linear(h, s[p + "value.weight"], s[p + "value.bias"])
+        q = linear(h, s[p + "to_q.weight"], s[p + "to_q.bias"])
+        k = linear(h, s[p + "to_k.weight"], s[p + "to_k.bias"])
+        v = linear(h, s[p + "to_v.weight"], s[p + "to_v.bias"])
         attn = softmax(q @ k.T / (C ** 0.5))
         h = attn @ v
-        h = linear(h, s[p + "proj_attn.weight"], s[p + "proj_attn.bias"])
+        h = linear(h, s[p + "to_out.0.weight"], s[p + "to_out.0.bias"])
         h = h.T.reshape(C, H, W)
         return x + h
 

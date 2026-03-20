@@ -111,12 +111,12 @@ def _remap_unet_state(state):
 def _remap_vae_state(state):
     attn_map = {
         "norm.": "group_norm.",
-        "q.": "query.",
-        "k.": "key.",
-        "v.": "value.",
-        "proj_out.": "proj_attn.",
+        "q.": "to_q.",
+        "k.": "to_k.",
+        "v.": "to_v.",
+        "proj_out.": "to_out.0.",
     }
-    attn_weight_suffixes = {"query.weight", "key.weight", "value.weight", "proj_attn.weight"}
+    attn_weight_suffixes = {"to_q.weight", "to_k.weight", "to_v.weight", "to_out.0.weight"}
 
     remapped = {}
     for key, value in state.items():

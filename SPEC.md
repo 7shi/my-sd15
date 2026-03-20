@@ -117,17 +117,20 @@ op.*            → conv.*          (downsampler)
 ```
 first_stage_model.decoder.mid.block_{1,2}.* → decoder.mid_block.resnets.{0,1}.*
 first_stage_model.decoder.mid.attn_1.norm.* → decoder.mid_block.attentions.0.group_norm.*
-first_stage_model.decoder.mid.attn_1.{q,k,v}.* → decoder.mid_block.attentions.0.{query,key,value}.*
-first_stage_model.decoder.mid.attn_1.proj_out.* → decoder.mid_block.attentions.0.proj_attn.*
+first_stage_model.decoder.mid.attn_1.{q,k,v}.* → decoder.mid_block.attentions.0.{to_q,to_k,to_v}.*
+first_stage_model.decoder.mid.attn_1.proj_out.* → decoder.mid_block.attentions.0.to_out.0.*
 first_stage_model.decoder.up.{i}.block.{j}.* → decoder.up_blocks.{3-i}.resnets.{j}.*  (order reversed)
 first_stage_model.decoder.up.{i}.upsample.conv.* → decoder.up_blocks.{3-i}.upsamplers.0.conv.*
 first_stage_model.decoder.norm_out.*        → decoder.conv_norm_out.*
 nin_shortcut.*  → conv_shortcut.*
 ```
 
-Attention weights (`query`, `key`, `value`, `proj_attn`) are stored as
+Attention weights (`to_q`, `to_k`, `to_v`, `to_out.0`) are stored as
 `(C, C, 1, 1)` conv2d tensors in the single file; they are squeezed to
 `(C, C)` to match the linear format expected by the implementation.
+
+**Note:** Older Diffusers versions used `query`/`key`/`value`/`proj_attn` for these keys.
+The current format uses `to_q`/`to_k`/`to_v`/`to_out.0` (matching UNet attention naming).
 
 ### Split-file format (legacy)
 
@@ -282,10 +285,10 @@ Single-head self-attention over spatial positions.
 
 Prefix: `mid_block.attentions.0.`
 - `group_norm.weight`, `group_norm.bias`: (512,)
-- `query.weight`, `query.bias`: (512, 512)
-- `key.weight`, `key.bias`: (512, 512)
-- `value.weight`, `value.bias`: (512, 512)
-- `proj_attn.weight`, `proj_attn.bias`: (512, 512)
+- `to_q.weight`, `to_q.bias`: (512, 512)
+- `to_k.weight`, `to_k.bias`: (512, 512)
+- `to_v.weight`, `to_v.bias`: (512, 512)
+- `to_out.0.weight`, `to_out.0.bias`: (512, 512)
 
 ```
 h = group_norm(x)                  # (C, H, W)
@@ -293,7 +296,7 @@ h = h.reshape(C, H*W).T           # (H*W, C)
 q, k, v = linear(h) for each      # (H*W, C)
 attn = softmax(q @ k.T / sqrt(C)) # (H*W, H*W)
 h = attn @ v                       # (H*W, C)
-h = linear(h)                      # proj_attn
+h = linear(h)                      # to_out.0
 h = h.T.reshape(C, H, W)
 return x + h
 ```

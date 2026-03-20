@@ -5,14 +5,14 @@ import os
 import pytest
 import torch
 
-from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_unet
+from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_unet, _resolve_path
 
 ATOL = 1e-3
 
 
 def weights_available():
     return os.path.exists(
-        os.path.join(DEFAULT_WEIGHTS_DIR, "unet", "diffusion_pytorch_model.safetensors")
+        _resolve_path(os.path.join(DEFAULT_WEIGHTS_DIR, "unet", "diffusion_pytorch_model.safetensors"))
     )
 
 

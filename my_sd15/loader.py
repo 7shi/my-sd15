@@ -12,12 +12,21 @@ DEFAULT_WEIGHTS_DIR = os.path.join(
 )
 
 
+def _resolve_path(path):
+    """Return path, falling back to .fp16.safetensors if .safetensors is missing."""
+    if not os.path.exists(path) and path.endswith(".safetensors"):
+        fp16_path = path.removesuffix(".safetensors") + ".fp16.safetensors"
+        if os.path.exists(fp16_path):
+            return fp16_path
+    return path
+
+
 def load_safetensors(path):
     """Load all tensors from a safetensors file as a dict of torch tensors."""
     tensors = {}
-    with safe_open(path, framework="pt") as f:
+    with safe_open(_resolve_path(path), framework="pt") as f:
         for key in f.keys():
-            tensors[key] = f.get_tensor(key)
+            tensors[key] = f.get_tensor(key).float()
     return tensors
 
 

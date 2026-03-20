@@ -5,14 +5,14 @@ import os
 import pytest
 import torch
 
-from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_vae_decoder
+from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_vae_decoder, _resolve_path
 
 ATOL = 1e-3
 
 
 def weights_available():
     return os.path.exists(
-        os.path.join(DEFAULT_WEIGHTS_DIR, "vae", "diffusion_pytorch_model.safetensors")
+        _resolve_path(os.path.join(DEFAULT_WEIGHTS_DIR, "vae", "diffusion_pytorch_model.safetensors"))
     )
 
 

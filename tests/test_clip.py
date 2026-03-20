@@ -5,14 +5,14 @@ import os
 import pytest
 import torch
 
-from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_clip_text_model
+from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_clip_text_model, _resolve_path
 
 ATOL = 1e-4
 
 
 def weights_available():
     return os.path.exists(
-        os.path.join(DEFAULT_WEIGHTS_DIR, "text_encoder", "model.safetensors")
+        _resolve_path(os.path.join(DEFAULT_WEIGHTS_DIR, "text_encoder", "model.safetensors"))
     )
 
 
