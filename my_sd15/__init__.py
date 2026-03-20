@@ -10,7 +10,8 @@ def main():
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--steps", type=int, default=10)
     parser.add_argument("--cfg", type=float, default=7.5)
-    parser.add_argument("--size", type=int, default=256)
+    parser.add_argument("-W", "--width", type=int, default=256)
+    parser.add_argument("-H", "--height", type=int, default=256)
     parser.add_argument("-n", "--negative", type=str, default="",
                         help="Negative prompt")
     parser.add_argument("-o", "--output", type=str, default="output.png")
@@ -18,6 +19,12 @@ def main():
 
     from my_sd15.loader import load_model
     from my_sd15.model import save_show_image
+
+    def align8(x):
+        return (x + 7) // 8 * 8
+
+    w = align8(args.width)
+    h = align8(args.height)
 
     model = load_model(model_id=args.model)
 
@@ -27,8 +34,8 @@ def main():
         seed=args.seed,
         steps=args.steps,
         cfg_scale=args.cfg,
-        height=args.size,
-        width=args.size,
+        height=h,
+        width=w,
         show_progress=True,
     )
     save_show_image(args.output, image)
