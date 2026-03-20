@@ -1,0 +1,28 @@
+[project]
+name = "my-sd15"
+version = "0.1.0"
+description = "SD 1.5 clean-room reimplementation"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pillow>=12.1.1",
+    "regex>=2026.2.28",
+    "safetensors>=0.7.0",
+    "torch>=2.10.0",
+]
+
+[dependency-groups]
+dev = [
+    "numpy>=2.4.3",
+    "pytest>=9.0.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+my-sd15 = "my_sd15:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["my_sd15"]
