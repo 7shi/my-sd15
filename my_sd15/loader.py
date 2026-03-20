@@ -71,6 +71,7 @@ def _resolve_weights_dir(model_id=None):
 def load_model(model_id=None):
     """Load all SD 1.5 components and return an SD15Model instance."""
     from my_sd15.model import SD15Model
+    from my_sd15.scheduler import DDIMScheduler
     from my_sd15.tokenizer import CLIPTokenizer
 
     weights_dir = _resolve_weights_dir(model_id)
@@ -83,5 +84,6 @@ def load_model(model_id=None):
     text_encoder = load_clip_text_model(weights_dir)
     unet = load_unet(weights_dir)
     vae = load_vae_decoder(weights_dir)
+    scheduler = DDIMScheduler()
 
-    return SD15Model(tokenizer=tokenizer, text_encoder=text_encoder, unet=unet, vae=vae)
+    return SD15Model(tokenizer=tokenizer, text_encoder=text_encoder, unet=unet, vae=vae, scheduler=scheduler)
