@@ -50,6 +50,74 @@ VAE Decoder ──► image (3, H, W) float32 in [-1, 1]
 Source: `stable-diffusion-v1-5/stable-diffusion-v1-5` on Hugging Face.
 Format: safetensors. All weights are loaded as float32.
 
+### Single-file format (primary)
+
+```
+tokenizer/vocab.json                        # BPE vocabulary: token_string -> token_id
+tokenizer/merges.txt                        # BPE merge rules
+v1-5-pruned-emaonly.safetensors             # All model weights in one file (~4.0 GB)
+```
+
+The single file contains 1145 keys using the original LDM naming convention.
+Use `load_from_single_file()` in `loader.py` to load all three models at once.
+
+#### Key prefixes by component
+
+| Component | Prefix | Keys |
+|---|---|---|
+| U-Net | `model.diffusion_model.` | 686 |
+| CLIP text encoder | `cond_stage_model.transformer.` | 197 |
+| VAE | `first_stage_model.` | 248 |
+
+#### Key name differences from split-file format
+
+The single file uses LDM-style names that differ from the Diffusers-style names
+used in the split files. `loader.py` remaps them automatically.
+
+**CLIP** — strip prefix only, key names are identical:
+```
+cond_stage_model.transformer.text_model.* → text_model.*
+```
+
+**U-Net** — strip prefix and remap LDM block names to Diffusers names:
+```
+time_embed.{0,2}.*         → time_embedding.linear_{1,2}.*
+input_blocks.0.0.*         → conv_in.*
+input_blocks.{1-11}.*      → down_blocks.{0-3}.*
+middle_block.{0,1,2}.*     → mid_block.{resnets.0, attentions.0, resnets.1}.*
+output_blocks.{0-11}.*     → up_blocks.{0-3}.*
+out.{0,2}.*                → {conv_norm_out, conv_out}.*
+```
+
+ResBlock internal key remapping:
+```
+in_layers.0.*   → norm1.*
+in_layers.2.*   → conv1.*
+emb_layers.1.*  → time_emb_proj.*
+out_layers.0.*  → norm2.*
+out_layers.3.*  → conv2.*
+skip_connection.*→ conv_shortcut.*
+op.*            → conv.*          (downsampler)
+```
+
+**VAE** — strip prefix, remap block names, and squeeze attention weights:
+```
+first_stage_model.decoder.mid.block_{1,2}.* → decoder.mid_block.resnets.{0,1}.*
+first_stage_model.decoder.mid.attn_1.norm.* → decoder.mid_block.attentions.0.group_norm.*
+first_stage_model.decoder.mid.attn_1.{q,k,v}.* → decoder.mid_block.attentions.0.{query,key,value}.*
+first_stage_model.decoder.mid.attn_1.proj_out.* → decoder.mid_block.attentions.0.proj_attn.*
+first_stage_model.decoder.up.{i}.block.{j}.* → decoder.up_blocks.{3-i}.resnets.{j}.*  (order reversed)
+first_stage_model.decoder.up.{i}.upsample.conv.* → decoder.up_blocks.{3-i}.upsamplers.0.conv.*
+first_stage_model.decoder.norm_out.*        → decoder.conv_norm_out.*
+nin_shortcut.*  → conv_shortcut.*
+```
+
+Attention weights (`query`, `key`, `value`, `proj_attn`) are stored as
+`(C, C, 1, 1)` conv2d tensors in the single file; they are squeezed to
+`(C, C)` to match the linear format expected by the implementation.
+
+### Split-file format (legacy)
+
 ```
 tokenizer/vocab.json          # BPE vocabulary: token_string -> token_id
 tokenizer/merges.txt          # BPE merge rules
@@ -57,6 +125,10 @@ text_encoder/model.safetensors  # CLIP text encoder (~492 MB)
 unet/diffusion_pytorch_model.safetensors  # U-Net (~3.4 GB)
 vae/diffusion_pytorch_model.safetensors   # VAE (~335 MB)
 ```
+
+Uses Diffusers-style key names (same as used throughout this spec).
+The split files were converted from the single file by Hugging Face and may
+have minor floating-point differences due to rounding during conversion.
 
 ## 3. CLIP Tokenizer
 

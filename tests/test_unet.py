@@ -1,26 +1,18 @@
 """Verify U-Net against test data."""
 
-import os
-
 import pytest
 import torch
 
-from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_unet
+from tests.conftest import single_file_available
 
 ATOL = 1e-3
 
 
-def weights_available():
-    return os.path.exists(
-        os.path.join(DEFAULT_WEIGHTS_DIR, "unet", "diffusion_pytorch_model.safetensors")
-    )
-
-
-@pytest.mark.skipif(not weights_available(), reason="weights not found")
+@pytest.mark.skipif(not single_file_available(), reason="weights not found")
 class TestUNet:
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.model = load_unet(DEFAULT_WEIGHTS_DIR)
+    def setup(self, models):
+        self.model = models[1]
 
     def test_output_shape(self, unet_data):
         """U-Net output has same shape as input."""

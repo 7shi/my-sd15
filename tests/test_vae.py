@@ -1,26 +1,18 @@
 """Verify VAE decoder against test data."""
 
-import os
-
 import pytest
 import torch
 
-from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_vae_decoder
+from tests.conftest import single_file_available
 
 ATOL = 1e-3
 
 
-def weights_available():
-    return os.path.exists(
-        os.path.join(DEFAULT_WEIGHTS_DIR, "vae", "diffusion_pytorch_model.safetensors")
-    )
-
-
-@pytest.mark.skipif(not weights_available(), reason="weights not found")
+@pytest.mark.skipif(not single_file_available(), reason="weights not found")
 class TestVaeDecoder:
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.decoder = load_vae_decoder(DEFAULT_WEIGHTS_DIR)
+    def setup(self, models):
+        self.decoder = models[2]
 
     def test_output_shape(self, vae_data):
         """VAE decoder outputs (3, H*8, W*8) for input (4, H, W)."""

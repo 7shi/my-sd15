@@ -5,19 +5,14 @@ import os
 import torch
 from PIL import Image
 
-from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_clip_text_model, load_unet, load_vae_decoder
+from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_from_single_file
 from my_sd15.scheduler import DDIMScheduler
 from my_sd15.tokenizer import CLIPTokenizer
 
 
-def generate(prompt, seed=42, steps=10, cfg_scale=7.5, height=256, width=256, weights_dir=None):
-    if weights_dir is None:
-        weights_dir = DEFAULT_WEIGHTS_DIR
-
-    tokenizer = CLIPTokenizer.from_pretrained(os.path.join(weights_dir, "tokenizer"))
-    clip = load_clip_text_model(weights_dir)
-    unet = load_unet(weights_dir)
-    vae = load_vae_decoder(weights_dir)
+def generate(prompt, seed=42, steps=10, cfg_scale=7.5, height=256, width=256):
+    tokenizer = CLIPTokenizer.from_pretrained(os.path.join(DEFAULT_WEIGHTS_DIR, "tokenizer"))
+    clip, unet, vae = load_from_single_file()
     scheduler = DDIMScheduler()
     scheduler.set_timesteps(steps)
 

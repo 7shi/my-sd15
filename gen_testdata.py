@@ -31,21 +31,14 @@ def save_safetensors(name, tensors):
 def main():
     os.makedirs(TESTDATA_DIR, exist_ok=True)
 
-    from my_sd15.loader import (
-        DEFAULT_WEIGHTS_DIR,
-        load_clip_text_model,
-        load_unet,
-        load_vae_decoder,
-    )
+    from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_from_single_file
     from my_sd15.tokenizer import CLIPTokenizer
     from my_sd15.scheduler import DDIMScheduler
 
     tokenizer = CLIPTokenizer.from_pretrained(
         os.path.join(DEFAULT_WEIGHTS_DIR, "tokenizer")
     )
-    clip = load_clip_text_model(DEFAULT_WEIGHTS_DIR)
-    unet = load_unet(DEFAULT_WEIGHTS_DIR)
-    vae = load_vae_decoder(DEFAULT_WEIGHTS_DIR)
+    clip, unet, vae = load_from_single_file()
     scheduler = DDIMScheduler()
     scheduler.set_timesteps(STEPS)
 
