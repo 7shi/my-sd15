@@ -10,7 +10,7 @@ from my_sd15.scheduler import DDIMScheduler
 from my_sd15.tokenizer import CLIPTokenizer
 
 
-def generate(prompt, seed=42, steps=10, cfg_scale=7.5, height=256, width=256, weights_dir=None):
+def generate(prompt, seed=42, steps=10, cfg_scale=7.5, height=256, width=256, weights_dir=None, show_progress=False):
     if weights_dir is None:
         weights_dir = DEFAULT_WEIGHTS_DIR
 
@@ -30,8 +30,10 @@ def generate(prompt, seed=42, steps=10, cfg_scale=7.5, height=256, width=256, we
     generator = torch.manual_seed(seed)
     latents = torch.randn(4, height // 8, width // 8, generator=generator)
 
+    from tqdm import tqdm
+
     with torch.no_grad():
-        for t in scheduler.timesteps:
+        for t in tqdm(scheduler.timesteps, disable=not show_progress):
             t_int = int(t)
             noise_cond = unet(latents, t_int, cond_emb)
             noise_uncond = unet(latents, t_int, uncond_emb)

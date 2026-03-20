@@ -32,6 +32,7 @@ def main():
         height=args.size,
         width=args.size,
         weights_dir=weights_dir,
+        show_progress=True,
     )
     image.save(args.output)
     print(f"Saved to {args.output}")
