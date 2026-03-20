@@ -2,7 +2,6 @@
 
 import os
 
-import numpy as np
 import pytest
 import torch
 
@@ -25,8 +24,8 @@ class TestUNet:
 
     def test_output_shape(self, unet_data):
         """U-Net output has same shape as input."""
-        x = torch.from_numpy(unet_data["input"])
-        ctx = torch.from_numpy(unet_data["context"])
+        x = unet_data["input"]
+        ctx = unet_data["context"]
         t = int(unet_data["t"][0])
         with torch.no_grad():
             out = self.model(x, t, ctx)
@@ -34,13 +33,14 @@ class TestUNet:
 
     def test_forward_matches(self, unet_data):
         """U-Net forward pass matches saved data."""
-        x = torch.from_numpy(unet_data["input"])
-        ctx = torch.from_numpy(unet_data["context"])
+        x = unet_data["input"]
+        ctx = unet_data["context"]
         t = int(unet_data["t"][0])
         with torch.no_grad():
             out = self.model(x, t, ctx)
-        np.testing.assert_allclose(
-            out.numpy(),
+        torch.testing.assert_close(
+            out,
             unet_data["output"],
             atol=ATOL,
+            rtol=0,
         )

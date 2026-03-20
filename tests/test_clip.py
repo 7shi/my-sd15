@@ -2,8 +2,8 @@
 
 import os
 
-import numpy as np
 import pytest
+import torch
 
 from my_sd15.loader import DEFAULT_WEIGHTS_DIR, load_clip_text_model
 
@@ -31,24 +31,26 @@ class TestCLIPTextModel:
         """CLIP output for the test prompt matches saved data."""
         ids = clip_data["cond_ids"].tolist()
         out = self.model(ids)
-        np.testing.assert_allclose(
-            out.detach().numpy(),
+        torch.testing.assert_close(
+            out.detach(),
             clip_data["cond_emb"],
             atol=ATOL,
+            rtol=0,
         )
 
     def test_uncond_embedding(self, clip_data):
         """CLIP output for empty string matches saved data."""
         ids = clip_data["uncond_ids"].tolist()
         out = self.model(ids)
-        np.testing.assert_allclose(
-            out.detach().numpy(),
+        torch.testing.assert_close(
+            out.detach(),
             clip_data["uncond_emb"],
             atol=ATOL,
+            rtol=0,
         )
 
     def test_different_prompts_differ(self, clip_data):
         """Different prompts produce different embeddings."""
         cond = clip_data["cond_emb"]
         uncond = clip_data["uncond_emb"]
-        assert not np.allclose(cond, uncond, atol=0.1)
+        assert not torch.allclose(cond, uncond, atol=0.1)

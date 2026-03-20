@@ -7,9 +7,8 @@ a new implementation can verify correctness step by step.
 import os
 import json
 
-import numpy as np
 import torch
-from safetensors.numpy import save_file
+from safetensors.torch import save_file
 
 TESTDATA_DIR = "testdata"
 PROMPT = "a cat sitting on a windowsill"
@@ -20,21 +19,12 @@ HEIGHT = 256
 WIDTH = 256
 
 
-def to_numpy(data):
-    if isinstance(data, torch.Tensor):
-        return data.detach().numpy()
-    elif isinstance(data, list):
-        return np.array(data)
-    return data
-
-
 def save_safetensors(name, tensors):
-    """Save a dict of named arrays as a safetensors file."""
+    """Save a dict of named tensors as a safetensors file."""
     path = os.path.join(TESTDATA_DIR, f"{name}.safetensors")
-    arrays = {k: to_numpy(v) for k, v in tensors.items()}
-    save_file(arrays, path)
+    save_file(tensors, path)
     print(f"  {path}")
-    for k, v in arrays.items():
+    for k, v in tensors.items():
         print(f"    {k}: {v.shape} {v.dtype}")
 
 
@@ -66,8 +56,8 @@ def main():
     cond_ids = tokenizer.encode(PROMPT)
     uncond_ids = tokenizer.encode("")
     save_safetensors("tokenizer", {
-        "cond_ids": np.array(cond_ids, dtype=np.int64),
-        "uncond_ids": np.array(uncond_ids, dtype=np.int64),
+        "cond_ids": torch.tensor(cond_ids, dtype=torch.int64),
+        "uncond_ids": torch.tensor(uncond_ids, dtype=torch.int64),
     })
 
     # =========================================================
@@ -78,9 +68,9 @@ def main():
         cond_emb = clip(cond_ids)
         uncond_emb = clip(uncond_ids)
     save_safetensors("clip", {
-        "cond_ids": np.array(cond_ids, dtype=np.int64),
+        "cond_ids": torch.tensor(cond_ids, dtype=torch.int64),
         "cond_emb": cond_emb,
-        "uncond_ids": np.array(uncond_ids, dtype=np.int64),
+        "uncond_ids": torch.tensor(uncond_ids, dtype=torch.int64),
         "uncond_emb": uncond_emb,
     })
 
@@ -88,13 +78,9 @@ def main():
     # 3. Scheduler
     # =========================================================
     print("=== Scheduler ===")
-    np.random.seed(0)
-    sched_sample = torch.from_numpy(
-        np.random.randn(4, 4, 4).astype(np.float32)
-    )
-    sched_noise = torch.from_numpy(
-        np.random.randn(4, 4, 4).astype(np.float32)
-    )
+    gen = torch.Generator().manual_seed(0)
+    sched_sample = torch.randn(4, 4, 4, generator=gen)
+    sched_noise = torch.randn(4, 4, 4, generator=gen)
     sched_t = int(scheduler.timesteps[0])
     sched_out = scheduler.step(sched_noise, sched_t, sched_sample)
     save_safetensors("scheduler", {
@@ -102,7 +88,7 @@ def main():
         "timesteps": scheduler.timesteps,
         "step_sample": sched_sample,
         "step_noise": sched_noise,
-        "step_t": np.array([sched_t], dtype=np.int64),
+        "step_t": torch.tensor([sched_t], dtype=torch.int64),
         "step_out": sched_out,
     })
 
@@ -110,10 +96,8 @@ def main():
     # 4. VAE Decoder
     # =========================================================
     print("=== VAE ===")
-    np.random.seed(1)
-    vae_input = torch.from_numpy(
-        np.random.randn(4, 32, 32).astype(np.float32) * 0.5
-    )
+    gen = torch.Generator().manual_seed(1)
+    vae_input = torch.randn(4, 32, 32, generator=gen) * 0.5
     with torch.no_grad():
         vae_output = vae(vae_input)
     save_safetensors("vae", {
@@ -125,20 +109,16 @@ def main():
     # 5. U-Net (single forward pass)
     # =========================================================
     print("=== U-Net ===")
-    np.random.seed(2)
-    unet_x = torch.from_numpy(
-        np.random.randn(4, 32, 32).astype(np.float32) * 0.1
-    )
-    unet_ctx = torch.from_numpy(
-        np.random.randn(77, 768).astype(np.float32) * 0.1
-    )
+    gen = torch.Generator().manual_seed(2)
+    unet_x = torch.randn(4, 32, 32, generator=gen) * 0.1
+    unet_ctx = torch.randn(77, 768, generator=gen) * 0.1
     unet_t = 500
     with torch.no_grad():
         unet_out = unet(unet_x, unet_t, unet_ctx)
     save_safetensors("unet", {
         "input": unet_x,
         "context": unet_ctx,
-        "t": np.array([unet_t], dtype=np.int64),
+        "t": torch.tensor([unet_t], dtype=torch.int64),
         "output": unet_out,
     })
 
@@ -168,9 +148,9 @@ def main():
         decoded = vae(latents / 0.18215)
 
     image = ((decoded + 1.0) / 2.0).clamp(0.0, 1.0)
-    image = (image * 255).byte().permute(1, 2, 0)
+    image = (image * 255).byte().permute(1, 2, 0).contiguous()
 
-    pipe_tensors["latents_final"] = latents
+    pipe_tensors["latents_final"] = latents.clone()
     pipe_tensors["decoded"] = decoded
     pipe_tensors["image"] = image
 

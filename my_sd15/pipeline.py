@@ -38,5 +38,5 @@ def generate(prompt, seed=42, steps=10, cfg_scale=7.5, height=256, width=256, we
         decoded = vae(latents / 0.18215)
 
     image = ((decoded + 1.0) / 2.0).clamp(0.0, 1.0)
-    image = (image * 255).byte().permute(1, 2, 0).numpy()
-    return image
+    image = (image * 255).byte().permute(1, 2, 0).contiguous()
+    return Image.frombytes("RGB", (image.shape[1], image.shape[0]), bytes(image.untyped_storage()))

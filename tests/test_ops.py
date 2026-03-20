@@ -4,8 +4,8 @@ These tests do NOT require model weights. They verify that each operation
 is implemented correctly using small, deterministic inputs.
 """
 
-import numpy as np
 import pytest
+import torch
 
 from my_sd15.ops import (
     conv2d,
@@ -19,7 +19,6 @@ from my_sd15.ops import (
     softmax,
     upsample_nearest_2d,
 )
-import torch
 
 
 class TestConv2dHandComputed:
@@ -95,10 +94,10 @@ class TestGroupNorm:
         out = group_norm(x, w, b, num_groups=8)
         # Check each group has mean≈0 and population var≈1
         grouped = out.reshape(8, -1)
-        np.testing.assert_allclose(grouped.mean(dim=1).numpy(), 0.0, atol=1e-5)
+        torch.testing.assert_close(grouped.mean(dim=1), torch.zeros(8), atol=1e-5, rtol=0)
         # Use unbiased=False (population variance) to match group_norm's normalization
-        np.testing.assert_allclose(
-            grouped.var(dim=1, unbiased=False).numpy(), 1.0, atol=1e-4
+        torch.testing.assert_close(
+            grouped.var(dim=1, unbiased=False), torch.ones(8), atol=1e-4, rtol=0
         )
 
     def test_affine_transform(self):
@@ -121,9 +120,9 @@ class TestLayerNorm:
         w = torch.ones(4)
         b = torch.zeros(4)
         out = layer_norm(x, w, b)
-        np.testing.assert_allclose(out.mean(dim=-1).numpy(), 0.0, atol=1e-6)
-        np.testing.assert_allclose(
-            out.var(dim=-1, unbiased=False).numpy(), 1.0, atol=1e-5
+        torch.testing.assert_close(out.mean(dim=-1), torch.zeros(1), atol=1e-6, rtol=0)
+        torch.testing.assert_close(
+            out.var(dim=-1, unbiased=False), torch.ones(1), atol=1e-5, rtol=0
         )
 
     def test_known_values(self):
@@ -133,7 +132,7 @@ class TestLayerNorm:
         b = torch.zeros(2)
         out = layer_norm(x, w, b)
         # (0-2)/2 = -1, (4-2)/2 = 1
-        np.testing.assert_allclose(out.numpy(), [[-1.0, 1.0]], atol=1e-5)
+        torch.testing.assert_close(out, torch.tensor([[-1.0, 1.0]]), atol=1e-5, rtol=0)
 
 
 class TestLinear:
@@ -204,7 +203,7 @@ class TestSoftmax:
         """Softmax output sums to 1 along the specified axis."""
         x = torch.randn(3, 5)
         out = softmax(x)
-        np.testing.assert_allclose(out.sum(dim=-1).numpy(), [1.0, 1.0, 1.0], atol=1e-6)
+        torch.testing.assert_close(out.sum(dim=-1), torch.ones(3), atol=1e-6, rtol=0)
 
     def test_all_non_negative(self):
         """Softmax output is always non-negative."""
@@ -216,7 +215,7 @@ class TestSoftmax:
         """Equal inputs produce uniform distribution."""
         x = torch.tensor([1.0, 1.0, 1.0, 1.0])
         out = softmax(x)
-        np.testing.assert_allclose(out.numpy(), [0.25, 0.25, 0.25, 0.25], atol=1e-6)
+        torch.testing.assert_close(out, torch.full((4,), 0.25), atol=1e-6, rtol=0)
 
     def test_numerical_stability(self):
         """Should not overflow/underflow with large values."""
@@ -224,7 +223,7 @@ class TestSoftmax:
         out = softmax(x)
         assert not torch.isnan(out).any()
         assert not torch.isinf(out).any()
-        np.testing.assert_allclose(out.sum().numpy(), 1.0, atol=1e-6)
+        torch.testing.assert_close(out.sum(), torch.tensor(1.0), atol=1e-6, rtol=0)
 
 
 class TestUpsampleNearest2d:

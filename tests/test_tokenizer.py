@@ -2,8 +2,8 @@
 
 import os
 
-import numpy as np
 import pytest
+import torch
 
 from my_sd15.loader import DEFAULT_WEIGHTS_DIR
 from my_sd15.tokenizer import CLIPTokenizer
@@ -70,9 +70,9 @@ class TestTokenizerTestData:
     def test_cond_ids(self, tokenizer, tokenizer_data, metadata):
         """Tokenization of the test prompt matches saved data."""
         ids = tokenizer.encode(metadata["prompt"])
-        np.testing.assert_array_equal(ids, tokenizer_data["cond_ids"])
+        assert ids == tokenizer_data["cond_ids"].tolist()
 
     def test_uncond_ids(self, tokenizer, tokenizer_data):
         """Tokenization of empty string matches saved data."""
         ids = tokenizer.encode("")
-        np.testing.assert_array_equal(ids, tokenizer_data["uncond_ids"])
+        assert ids == tokenizer_data["uncond_ids"].tolist()

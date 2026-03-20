@@ -1,7 +1,5 @@
 import argparse
 
-from PIL import Image
-
 
 def main():
     """CLI entry point."""
@@ -24,5 +22,5 @@ def main():
         height=args.size,
         width=args.size,
     )
-    Image.fromarray(image).save(args.output)
+    image.save(args.output)
     print(f"Saved to {args.output}")

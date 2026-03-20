@@ -1,7 +1,7 @@
 """Verify DDIM scheduler against test data and mathematical properties."""
 
-import numpy as np
 import pytest
+import torch
 
 from my_sd15.scheduler import DDIMScheduler
 
@@ -14,23 +14,23 @@ class TestBetaSchedule:
     def test_alphas_cumprod_monotonic(self):
         """alpha_cumprod must be monotonically decreasing."""
         sched = DDIMScheduler()
-        acp = sched.alphas_cumprod.numpy()
-        assert np.all(np.diff(acp) < 0)
+        assert (torch.diff(sched.alphas_cumprod) < 0).all()
 
     def test_alphas_cumprod_range(self):
         """alpha_cumprod[0] ≈ 1, alpha_cumprod[-1] ≈ 0."""
         sched = DDIMScheduler()
-        acp = sched.alphas_cumprod.numpy()
-        assert acp[0] > 0.99
-        assert acp[-1] < 0.01
+        acp = sched.alphas_cumprod
+        assert acp[0].item() > 0.99
+        assert acp[-1].item() < 0.01
 
     def test_alphas_cumprod_matches(self, scheduler_data):
         """Match saved alphas_cumprod."""
         sched = DDIMScheduler()
-        np.testing.assert_allclose(
-            sched.alphas_cumprod.numpy(),
+        torch.testing.assert_close(
+            sched.alphas_cumprod,
             scheduler_data["alphas_cumprod"],
             atol=1e-6,
+            rtol=0,
         )
 
 
@@ -44,23 +44,19 @@ class TestTimesteps:
         """Timesteps are in descending order."""
         sched = DDIMScheduler()
         sched.set_timesteps(10)
-        ts = sched.timesteps.numpy()
-        assert np.all(np.diff(ts) < 0)
+        assert (torch.diff(sched.timesteps) < 0).all()
 
     def test_known_values(self):
         """10 steps from 1000 training steps → [900, 800, ..., 0]."""
         sched = DDIMScheduler()
         sched.set_timesteps(10)
-        expected = [900, 800, 700, 600, 500, 400, 300, 200, 100, 0]
-        np.testing.assert_array_equal(sched.timesteps.numpy(), expected)
+        expected = torch.tensor([900, 800, 700, 600, 500, 400, 300, 200, 100, 0])
+        torch.testing.assert_close(sched.timesteps, expected)
 
     def test_matches_saved(self, scheduler_data):
         sched = DDIMScheduler()
         sched.set_timesteps(10)
-        np.testing.assert_array_equal(
-            sched.timesteps.numpy(),
-            scheduler_data["timesteps"],
-        )
+        torch.testing.assert_close(sched.timesteps, scheduler_data["timesteps"])
 
 
 class TestDDIMStep:
@@ -68,19 +64,17 @@ class TestDDIMStep:
         """Same inputs produce same outputs (eta=0)."""
         sched = DDIMScheduler()
         sched.set_timesteps(10)
-        import torch
         sample = torch.randn(4, 4, 4)
         noise = torch.randn(4, 4, 4)
         t = int(sched.timesteps[0])
         out1 = sched.step(noise, t, sample)
         out2 = sched.step(noise, t, sample)
-        np.testing.assert_array_equal(out1.numpy(), out2.numpy())
+        torch.testing.assert_close(out1, out2)
 
     def test_output_shape(self):
         """Output has same shape as input."""
         sched = DDIMScheduler()
         sched.set_timesteps(10)
-        import torch
         sample = torch.randn(4, 8, 8)
         noise = torch.randn(4, 8, 8)
         out = sched.step(noise, int(sched.timesteps[0]), sample)
@@ -88,15 +82,15 @@ class TestDDIMStep:
 
     def test_matches_saved(self, scheduler_data):
         """Single step matches saved test data."""
-        import torch
         sched = DDIMScheduler()
         sched.set_timesteps(10)
-        sample = torch.from_numpy(scheduler_data["step_sample"])
-        noise = torch.from_numpy(scheduler_data["step_noise"])
+        sample = scheduler_data["step_sample"]
+        noise = scheduler_data["step_noise"]
         t = int(scheduler_data["step_t"][0])
         out = sched.step(noise, t, sample)
-        np.testing.assert_allclose(
-            out.numpy(),
+        torch.testing.assert_close(
+            out,
             scheduler_data["step_out"],
             atol=1e-5,
+            rtol=0,
         )

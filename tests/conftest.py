@@ -3,7 +3,6 @@
 import os
 import json
 
-import numpy as np
 import pytest
 from safetensors import safe_open
 
@@ -12,10 +11,10 @@ TESTDATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "testdat
 
 
 def load_testdata(name):
-    """Load all tensors from a testdata safetensors file as numpy arrays."""
+    """Load all tensors from a testdata safetensors file as torch tensors."""
     path = os.path.join(TESTDATA_DIR, f"{name}.safetensors")
     tensors = {}
-    with safe_open(path, framework="numpy") as f:
+    with safe_open(path, framework="pt") as f:
         for key in f.keys():
             tensors[key] = f.get_tensor(key)
     return tensors

@@ -5,6 +5,7 @@ description = "SD 1.5 clean-room reimplementation"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "numpy>=2.4.3",
     "pillow>=12.1.1",
     "regex>=2026.2.28",
     "safetensors>=0.7.0",
@@ -13,7 +14,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "numpy>=2.4.3",
     "pytest>=9.0.2",
 ]
 

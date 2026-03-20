@@ -30,3 +30,13 @@ uv run my-sd15 --prompt "a cat sitting on a windowsill" --seed 42 --steps 10 --c
 
 - `weights/stable-diffusion-v1-5/stable-diffusion-v1-5/` — Hugging Face の公式重み
 - `testdata/` — 検証用テストデータ（safetensors）
+
+## 依存関係の補足
+
+コード自体は numpy を使用していないが、numpy を未インストールの状態で PyTorch をインポートすると、PyTorch の C++ 初期化コード（`tensor_numpy.cpp`）が NumPy との連携を試みて以下の警告を出力する：
+
+```
+UserWarning: Failed to initialize NumPy: No module named 'numpy'
+```
+
+この警告は Python レベルで回避できないため、numpy を通常の依存関係として追加している。

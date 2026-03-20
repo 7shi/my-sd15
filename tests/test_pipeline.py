@@ -2,7 +2,6 @@
 
 import os
 
-import numpy as np
 import pytest
 import torch
 
@@ -42,10 +41,11 @@ class TestPipelineStepByStep:
         """Initial noise generated with torch.manual_seed(42) matches."""
         generator = torch.manual_seed(42)
         latents = torch.randn(4, 32, 32, generator=generator)
-        np.testing.assert_allclose(
-            latents.numpy(),
+        torch.testing.assert_close(
+            latents,
             pipeline_data["latents_init"],
             atol=1e-6,
+            rtol=0,
         )
 
     def test_each_step(self, pipeline_data, metadata):
@@ -53,7 +53,7 @@ class TestPipelineStepByStep:
         cond_emb = self.clip(self.tokenizer.encode(metadata["prompt"]))
         uncond_emb = self.clip(self.tokenizer.encode(""))
 
-        latents = torch.from_numpy(pipeline_data["latents_init"].copy())
+        latents = pipeline_data["latents_init"].clone()
         cfg = metadata["cfg_scale"]
 
         with torch.no_grad():
@@ -65,7 +65,7 @@ class TestPipelineStepByStep:
                 latents = self.scheduler.step(noise_pred, t_int, latents)
 
                 expected = pipeline_data[f"latents_step{i:02d}"]
-                diff = np.max(np.abs(latents.numpy() - expected))
+                diff = (latents - expected).abs().max().item()
                 assert diff < ATOL_LATENT, (
                     f"Step {i} (t={t_int}): max diff {diff:.6f} > {ATOL_LATENT}"
                 )
@@ -75,7 +75,7 @@ class TestPipelineStepByStep:
         cond_emb = self.clip(self.tokenizer.encode(metadata["prompt"]))
         uncond_emb = self.clip(self.tokenizer.encode(""))
 
-        latents = torch.from_numpy(pipeline_data["latents_init"].copy())
+        latents = pipeline_data["latents_init"].clone()
         cfg = metadata["cfg_scale"]
 
         with torch.no_grad():
@@ -86,26 +86,28 @@ class TestPipelineStepByStep:
                 noise_pred = noise_uncond + cfg * (noise_cond - noise_uncond)
                 latents = self.scheduler.step(noise_pred, t_int, latents)
 
-        np.testing.assert_allclose(
-            latents.numpy(),
+        torch.testing.assert_close(
+            latents,
             pipeline_data["latents_final"],
             atol=ATOL_LATENT,
+            rtol=0,
         )
 
     def test_decoded_image(self, pipeline_data):
         """VAE decode of final latents matches."""
-        latents = torch.from_numpy(pipeline_data["latents_final"].copy())
+        latents = pipeline_data["latents_final"].clone()
         with torch.no_grad():
             decoded = self.vae(latents / 0.18215)
-        np.testing.assert_allclose(
-            decoded.numpy(),
+        torch.testing.assert_close(
+            decoded,
             pipeline_data["decoded"],
             atol=ATOL_IMAGE,
+            rtol=0,
         )
 
     def test_final_image(self, pipeline_data):
         """Final uint8 image matches."""
-        decoded = torch.from_numpy(pipeline_data["decoded"].copy())
+        decoded = pipeline_data["decoded"].clone()
         image = ((decoded + 1.0) / 2.0).clamp(0.0, 1.0)
-        image = (image * 255).byte().permute(1, 2, 0).numpy()
-        np.testing.assert_array_equal(image, pipeline_data["image"])
+        image = (image * 255).byte().permute(1, 2, 0)
+        torch.testing.assert_close(image, pipeline_data["image"])
