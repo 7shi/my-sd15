@@ -14,7 +14,10 @@ def generate(prompt, seed=42, steps=10, cfg_scale=7.5, height=256, width=256, we
     if weights_dir is None:
         weights_dir = DEFAULT_WEIGHTS_DIR
 
-    tokenizer = CLIPTokenizer.from_pretrained(os.path.join(weights_dir, "tokenizer"))
+    tokenizer_dir = os.path.join(weights_dir, "tokenizer")
+    if not os.path.isdir(tokenizer_dir):
+        tokenizer_dir = os.path.join(DEFAULT_WEIGHTS_DIR, "tokenizer")
+    tokenizer = CLIPTokenizer.from_pretrained(tokenizer_dir)
     clip = load_clip_text_model(weights_dir)
     unet = load_unet(weights_dir)
     vae = load_vae_decoder(weights_dir)
