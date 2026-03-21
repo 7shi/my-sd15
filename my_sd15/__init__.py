@@ -39,6 +39,7 @@ def main():
     if w != args.width or h != args.height:
         print(f"Size adjusted to {w}x{h}")
 
+    print("Generating image...")
     image = model.generate(
         prompt=args.prompt,
         negative_prompt=args.negative,
