@@ -1,6 +1,6 @@
 # my-sd15: Stable Diffusion 1.5 Scratch Implementation with PyTorch
 
-このプロジェクトは、画像生成 AI のアーキテクチャを深く理解するために、[Stable Diffusion 1.5](https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5) の推論パイプラインをスクラッチ実装したものです。PyTorch の基本演算（行列積、unfold 等）を用いて、Conv2D、GroupNorm、U-Net、VAE などの仕組みを再現しています。アニメ風モデル [Anything V5](https://huggingface.co/genai-archive/anything-v5) にも対応しています。
+このプロジェクトは、画像生成 AI のアーキテクチャを深く理解するために、[Stable Diffusion 1.5](https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5) の推論パイプラインをスクラッチ実装したものです。PyTorch の基本演算（行列積、unfold 等）を用いて、Conv2D、GroupNorm、U-Net、VAE などの仕組みを再現しています。
 
 姉妹プロジェクト [my-gpt2](https://github.com/7shi/my-gpt2) で GPT-2 の推論エンジンをスクラッチ実装した経験を土台に、同じ「動くコードから学ぶ」アプローチで画像生成の世界に踏み込みます。
 
@@ -50,7 +50,7 @@ SD 1.5 は 2022 年に公開された約 10 億パラメータの拡散モデル
 
 ### 画像サイズについて
 
-本プロジェクトは CPU 実行を前提としています。SD 1.5 は 512×512 で訓練されているため、256×256 では意味のある画像が生成できません。一方、Anything V5 は 256×256 でも比較的良好な結果が得られます。CPU (WSL2) での実行時間は 256×256 で約 30 秒、512×512 で約 3 分です。サンプル画像は [samples/README.md](samples/README.md) を参照してください。
+本プロジェクトは CPU 実行を前提としています。SD 1.5 は 512×512 で訓練されているため、256×256 では意味のある画像が生成できません。一方、miniSD は 256×256 でも比較的良好な画像が生成できます。CPU (WSL2) での実行時間は 256×256 で約 30 秒、512×512 で約 3 分です。サンプル画像は [samples/README.md](samples/README.md) を参照してください。
 
 ### デノイジング過程の可視化
 

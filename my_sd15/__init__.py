@@ -49,7 +49,7 @@ def main():
         width=w,
         show_progress=True,
     )
-    print("VAE decoding...")
+
     save_show_image(args.output, image)
     print(f"Saved to {args.output}")
 
