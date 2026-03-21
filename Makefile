@@ -35,14 +35,14 @@ MINISD_ST = miniSD.safetensors
 
 download-minisd:
 	$(call download_model,$(MINISD_ID),$(MINISD_ST))
-	uv run single2dir.py --fp16 weights/$(MINISD_ID)/$(MINISD_ST)
+	uv run single2dir.py --bits 16 weights/$(MINISD_ID)/$(MINISD_ST)
 
 ANY5_ID = genai-archive/anything-v5
 ANY5_ST = anything-v5.safetensors
 
 download-any5:
 	$(call download_model,$(ANY5_ID),$(ANY5_ST))
-	uv run single2dir.py --fp16 weights/$(ANY5_ID)/$(ANY5_ST)
+	uv run single2dir.py --bits 16 weights/$(ANY5_ID)/$(ANY5_ST)
 
 OPTIONS = -p "a cat sitting on a windowsill" --steps 10 --cfg 7.5
 
@@ -52,8 +52,8 @@ run:
 SAMPLE_OPTS = $(OPTIONS) --seed 123
 
 samples:
-	uv run my-sd15 $(SAMPLE_OPTS) -W 256 -H 256 -o samples/sd15-256x256.jpg
-	uv run my-sd15 $(SAMPLE_OPTS) -W 512 -H 512 -o samples/sd15-512x512.jpg
+	uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 $(SAMPLE_OPTS) -W 256 -H 256 -o samples/sd15-256x256.jpg
+	uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 $(SAMPLE_OPTS) -W 512 -H 512 -o samples/sd15-512x512.jpg
 	uv run my-sd15 -m webui/miniSD $(SAMPLE_OPTS) -W 256 -H 256 -o samples/minisd-256x256.jpg
 	uv run my-sd15 -m webui/miniSD $(SAMPLE_OPTS) -W 512 -H 512 -o samples/minisd-512x512.jpg
 	uv run my-sd15 -m genai-archive/anything-v5 $(SAMPLE_OPTS) -W 256 -H 256 -o samples/any5-256x256.jpg

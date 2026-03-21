@@ -3,8 +3,15 @@
 import argparse
 import os
 
+import torch
 from safetensors import safe_open
 from safetensors.torch import save_file
+
+_DTYPE_MAP = {
+    32: (torch.float32, "fp32", ".safetensors"),
+    16: (torch.float16, "fp16", ".fp16.safetensors"),
+    8:  (torch.float8_e4m3fn, "fp8", ".fp8.safetensors"),
+}
 
 
 def load_safetensors(path):
@@ -142,16 +149,15 @@ def _remap_vae_state(state):
     return remapped
 
 
-def convert(src_path, out_dir, fp16=False):
+def convert(src_path, out_dir, bits=32):
     print(f"Loading {src_path} ...")
     raw = load_safetensors(src_path)
 
-    dtype_label = "fp16" if fp16 else "fp32"
-    suffix = ".fp16.safetensors" if fp16 else ".safetensors"
+    dtype, dtype_label, suffix = _DTYPE_MAP[bits]
 
-    def maybe_half(d):
-        if fp16:
-            return {k: v.half() for k, v in d.items()}
+    def cast(d):
+        if dtype != torch.float32:
+            return {k: v.to(dtype) for k, v in d.items()}
         return d
 
     # CLIP
@@ -160,7 +166,7 @@ def convert(src_path, out_dir, fp16=False):
     clip_out = os.path.join(out_dir, "text_encoder", f"model{suffix}")
     os.makedirs(os.path.dirname(clip_out), exist_ok=True)
     print(f"Saving text_encoder ({len(clip_state)} keys, {dtype_label}):\n  {clip_out}")
-    save_file(maybe_half(clip_state), clip_out)
+    save_file(cast(clip_state), clip_out)
 
     # UNet
     unet_prefix = "model.diffusion_model."
@@ -169,7 +175,7 @@ def convert(src_path, out_dir, fp16=False):
     unet_out = os.path.join(out_dir, "unet", f"diffusion_pytorch_model{suffix}")
     os.makedirs(os.path.dirname(unet_out), exist_ok=True)
     print(f"Saving unet ({len(unet_state)} keys, {dtype_label}):\n  {unet_out}")
-    save_file(maybe_half(unet_state), unet_out)
+    save_file(cast(unet_state), unet_out)
 
     # VAE
     vae_prefix = "first_stage_model."
@@ -178,7 +184,7 @@ def convert(src_path, out_dir, fp16=False):
     vae_out = os.path.join(out_dir, "vae", f"diffusion_pytorch_model{suffix}")
     os.makedirs(os.path.dirname(vae_out), exist_ok=True)
     print(f"Saving vae ({len(vae_state)} keys, {dtype_label}):\n  {vae_out}")
-    save_file(maybe_half(vae_state), vae_out)
+    save_file(cast(vae_state), vae_out)
 
     print("Done.")
 
@@ -187,10 +193,11 @@ def main():
     parser = argparse.ArgumentParser(description="Convert SD 1.5 single-file to split-file (Diffusers) format.")
     parser.add_argument("src", help="Path to source safetensors file")
     parser.add_argument("--out-dir", help="Output directory (default: same directory as src)")
-    parser.add_argument("--fp16", action="store_true", help="Save weights in float16")
+    parser.add_argument("--bits", type=int, choices=[32, 16, 8], default=32,
+                        help="Weight dtype: 32=fp32 (default), 16=fp16, 8=fp8 (E4M3FN)")
     args = parser.parse_args()
     out_dir = args.out_dir or os.path.dirname(args.src) or "."
-    convert(args.src, out_dir, fp16=args.fp16)
+    convert(args.src, out_dir, bits=args.bits)
 
 
 if __name__ == "__main__":

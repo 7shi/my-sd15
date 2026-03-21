@@ -13,11 +13,12 @@ DEFAULT_WEIGHTS_DIR = os.path.join(
 
 
 def _resolve_path(path):
-    """Return path, falling back to .fp16.safetensors if .safetensors is missing."""
+    """Return path, falling back to .fp16/.fp8.safetensors if .safetensors is missing."""
     if not os.path.exists(path) and path.endswith(".safetensors"):
-        fp16_path = path.removesuffix(".safetensors") + ".fp16.safetensors"
-        if os.path.exists(fp16_path):
-            return fp16_path
+        for alt_suffix in (".fp16.safetensors", ".fp8.safetensors"):
+            alt = path.removesuffix(".safetensors") + alt_suffix
+            if os.path.exists(alt):
+                return alt
     return path
 
 
