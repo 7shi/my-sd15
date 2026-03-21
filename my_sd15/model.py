@@ -19,7 +19,9 @@ def decode_to_image(decoded):
 
 def save_image(path, image, show=False, mkdir=False):
     if mkdir:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        dir = os.path.dirname(path)
+        if dir:
+            os.makedirs(dir, exist_ok=True)
     image.save(path)
     if show:
         SixelConverter(path).write(sys.stdout)
