@@ -24,6 +24,15 @@
 
 既にアルゴリズムは確立されており、LLM はそれについての知識を持っているため、データ入出力などの仕様を渡せば Vibe Coding の要領で生成できます。
 
+### テスト
+
+`gen_testdata.py` は SD 1.5 のモデルデータを使用して、各コンポーネントのテストデータを `testdata/` に保存します。これを使って、pytest はスクラッチ実装を検証します。
+
+```bash
+uv run gen_testdata.py  # テストデータ生成
+uv run pytest           # テスト実行
+```
+
 ## 技術解説
 
 docs ディレクトリに、推論パイプラインの処理順序に沿った解説と実験スクリプトがあります。
@@ -97,17 +106,18 @@ cd my-sd15
 uv sync
 ```
 
-### 重みファイルのダウンロード
+### モデルのダウンロード
 
-SD 1.5 と Anything V5 の重みをダウンロードします。
+各モデルの重みをダウンロードします。
 
 ```bash
-make download          # 両モデルをまとめてダウンロード
+make download          # SD 1.5 トークナイザーと miniSD をまとめてダウンロード（最小セット）
 make download-sd15     # stable-diffusion-v1-5 のみ
+make download-minisd   # webui/miniSD のみ
 make download-any5     # genai-archive/anything-v5 のみ
 ```
 
-Anything V5 のような単一ファイル形式のモデルは、`single2dir.py` で Diffusers 形式（コンポーネント別ディレクトリ）に自動分割されます。
+miniSD のような単一ファイル形式のモデルは、`single2dir.py` で Diffusers 形式（コンポーネント別ディレクトリ）に自動分割されます。
 
 ### 画像生成の実行
 
@@ -134,15 +144,6 @@ uv run my-sd15 -m genai-archive/anything-v5 -p "a cat sitting on a windowsill" -
 - `-H`, `--height`: 画像の高さ（デフォルト: 256）。8 の倍数に切り上げられます。
 - `-n`, `--negative`: Negative Prompt。生成したくない要素を指定します。
 - `-o`, `--output`: 出力ファイルパス（デフォルト: `output.png`）。
-
-## テスト
-
-`gen_testdata.py` で各コンポーネントの入出力を safetensors として `testdata/` に保存します。pytest はこのテストデータを使って、スクラッチ実装の出力を検証します。
-
-```bash
-uv run gen_testdata.py  # テストデータ生成
-uv run pytest           # テスト実行
-```
 
 ---
 画像生成 AI の内部で何が起きているのかを、コードを通じて学ぶためのリポジトリです。
