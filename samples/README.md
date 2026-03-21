@@ -20,7 +20,7 @@ CPU (WSL2) での実行時間を併記しています。
 
 モデル: https://huggingface.co/webui/miniSD （[justinpinkney/miniSD](https://huggingface.co/justinpinkney/miniSD) の safetensors 変換版）
 
-miniSD は SD 1.4 を 256x256 で訓練した軽量モデルです。256x256 でも比較的良好な画像が生成されますが、512x512 ではパターンの繰り返しが見られます。
+miniSD は SD 1.4 を 256x256 でチューニングしたモデルです。256x256 でも比較的良好な画像が生成されます。想定解像度より大きい 512x512 では、パターンの繰り返しが見られます。
 
 | 256x256 (0m28s) | 512x512 (3m38s) |
 |:---:|:---:|
