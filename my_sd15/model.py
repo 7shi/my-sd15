@@ -1,6 +1,7 @@
 """SD 1.5 model container with text-to-image generation."""
 
 import sys
+import os
 from dataclasses import dataclass
 
 import torch
@@ -16,10 +17,13 @@ def decode_to_image(decoded):
     return Image.frombytes("RGB", (image.shape[1], image.shape[0]), bytes(image.untyped_storage()))
 
 
-def save_show_image(path, image):
+def save_image(path, image, show=False, mkdir=False):
+    if mkdir:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
     image.save(path)
-    SixelConverter(path).write(sys.stdout)
-    print()
+    if show:
+        SixelConverter(path).write(sys.stdout)
+        print()
 
 
 @dataclass

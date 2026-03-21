@@ -3,33 +3,43 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="SD 1.5 text-to-image")
     parser.add_argument("-p", "--prompt", type=str, required=True)
-    parser.add_argument("-m", "--model", type=str, default=None,
-                        help="Model ID under weights/ (e.g. genai-archive/anything-v5)")
-    parser.add_argument("--seed", type=int, default=None)
-    parser.add_argument("--steps", type=int, default=10)
-    parser.add_argument("--cfg", type=float, default=7.5)
-    parser.add_argument("-W", "--width", type=int, default=256)
-    parser.add_argument("-H", "--height", type=int, default=256)
     parser.add_argument("-n", "--negative", type=str, default="",
                         help="Negative prompt")
-    parser.add_argument("-o", "--output", type=str, default="output.png")
+    parser.add_argument("-m", "--model", type=str, default=None,
+                        help="Model ID under weights/ (e.g. genai-archive/anything-v5)")
+    parser.add_argument("-s", "--seed", type=int, action="append", dest="seeds",
+                        help="Random seed (can be specified multiple times)")
+    parser.add_argument("-S", "--steps", type=int, default=10)
+    parser.add_argument("-C", "--cfg", type=float, default=7.5)
+    parser.add_argument("-W", "--width", type=int, default=256)
+    parser.add_argument("-H", "--height", type=int, default=256)
+    parser.add_argument("-c", "--count", type=int, default=1,
+                        help="Number of images to generate")
+    parser.add_argument("-o", "--output", type=str, default="output/%s.png",
+                        help="Output file path (use %s to include seed)")
+    parser.add_argument("--no-show", action="store_true",
+                        help="Save image without displaying")
+    parser.add_argument("--no-progress", action="store_true",
+                        help="Disable progress display")
     args = parser.parse_args()
+    seeds = args.seeds or []
+    if len(seeds) > args.count:
+        parser.error(f"Too many seeds ({len(seeds)}) for count ({args.count})")
 
+    import os
     from datetime import datetime
     start = datetime.now()
 
     print("Loading libraries...")
     import torch
     from my_sd15.loader import load_model
-    from my_sd15.model import save_show_image
+    from my_sd15.model import save_image
 
     print("Loading model...")
     model = load_model(model_id=args.model)
 
-    seed = args.seed
-    if args.seed is None:
-        seed = torch.randint(0, 2**30, (1,)).item()
-        print(f"Seed set to {seed}")
+    if len(seeds) < args.count:
+        seeds += torch.randint(0, 2**30, (args.count - len(seeds),)).tolist()
 
     def align8(x):
         return (x + 7) // 8 * 8
@@ -39,20 +49,27 @@ def main():
     if w != args.width or h != args.height:
         print(f"Size adjusted to {w}x{h}")
 
-    print("Generating image...")
-    image = model.generate(
-        prompt=args.prompt,
-        negative_prompt=args.negative,
-        seed=seed,
-        steps=args.steps,
-        cfg_scale=args.cfg,
-        height=h,
-        width=w,
-        show_progress=True,
-    )
-
-    save_show_image(args.output, image)
-    print(f"Saved to {args.output}")
+    for i, seed in enumerate(seeds, start=1):
+        print(f"Generating image ({i}/{len(seeds)}, seed={seed})...")
+        image = model.generate(
+            prompt=args.prompt,
+            negative_prompt=args.negative,
+            seed=seed,
+            steps=args.steps,
+            cfg_scale=args.cfg,
+            height=h,
+            width=w,
+            show_progress=not args.no_progress,
+        )
+        if "%s" in args.output:
+            output = args.output.replace("%s", f"{seed:010d}")
+        elif args.count > 1:
+            name, ext = os.path.splitext(args.output)
+            output = f"{name}-{seed:010d}{ext}"
+        else:
+            output = args.output
+        save_image(output, image, show=not args.no_show, mkdir=True)
+        print(f"Saved to {output}")
 
     end = datetime.now()
     print(f"Elapsed time: {end - start}")

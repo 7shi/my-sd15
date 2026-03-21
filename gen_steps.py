@@ -5,7 +5,11 @@ import os
 import torch
 
 from my_sd15.loader import load_model
-from my_sd15.model import decode_to_image, save_show_image
+from my_sd15.model import decode_to_image, save_image
+
+
+def save_show_image(path, image):
+    save_image(path, image, show=True, mkdir=True)
 
 
 def main():
@@ -25,8 +29,6 @@ def main():
 
     generator = torch.manual_seed(seed)
     latents = torch.randn(4, size // 8, size // 8, generator=generator)
-
-    os.makedirs("steps", exist_ok=True)
 
     with torch.no_grad():
         for i, t in enumerate(model.scheduler.timesteps):
