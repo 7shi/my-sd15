@@ -1,7 +1,5 @@
 """Visualize intermediate latents at each denoising step."""
 
-import os
-
 import torch
 
 from my_sd15.loader import load_model

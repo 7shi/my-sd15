@@ -25,7 +25,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project.scripts]
-my-sd15 = "my_sd15:main"
+my-sd15 = "my_sd15.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["my_sd15"]
