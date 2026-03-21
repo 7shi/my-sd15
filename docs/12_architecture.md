@@ -13,7 +13,7 @@ SD 1.5 の推論パイプラインは、わずか 20 行足らずのコードに
 ```python
 # 1. テキスト → 条件ベクトル
 cond_emb = text_encoder(tokenizer.encode(prompt))        # (77, 768)
-uncond_emb = text_encoder(tokenizer.encode(""))           # (77, 768)
+uncond_emb = text_encoder(tokenizer.encode(""))          # (77, 768)
 
 # 2. ランダムノイズ
 latents = torch.randn(4, height // 8, width // 8)        # (4, 32, 32)
@@ -21,9 +21,9 @@ latents = torch.randn(4, height // 8, width // 8)        # (4, 32, 32)
 # 3. デノイジングループ
 for t in scheduler.timesteps:
     noise_cond = unet(latents, t, cond_emb)               # (4, 32, 32)
-    noise_uncond = unet(latents, t, uncond_emb)            # (4, 32, 32)
+    noise_uncond = unet(latents, t, uncond_emb)           # (4, 32, 32)
     noise_pred = noise_uncond + cfg_scale * (noise_cond - noise_uncond)
-    latents = scheduler.step(noise_pred, t, latents)       # (4, 32, 32)
+    latents = scheduler.step(noise_pred, t, latents)      # (4, 32, 32)
 
 # 4. 画像化
 image = vae(latents / 0.18215)                            # (3, 256, 256)
@@ -38,8 +38,8 @@ image = vae(latents / 0.18215)                            # (3, 256, 256)
 | 概念 | GPT-2 | SD 1.5 |
 |---|---|---|
 | Attention | Self-Attention（12 ヘッド×64 次元） | Self/Cross-Attention（8 or 12 ヘッド） |
-| 正規化 | LayerNorm | LayerNorm（CLIP）+ GroupNorm（U-Net/VAE） |
-| 活性化関数 | GELU | SiLU（U-Net/VAE）、Quick GELU（CLIP）、GELU（GEGLU） |
+| 正規化 | LayerNorm | LayerNorm (CLIP) + GroupNorm (U-Net/VAE)  |
+| 活性化関数 | GELU | SiLU (U-Net/VAE) 、Quick GELU (CLIP) 、GELU (GEGLU)  |
 | 残差接続 | `x = x + f(x)` | `x = x + f(x)`（ResBlock、SpatialTransformer） |
 | 埋め込み | 位置埋め込み（学習済み） | 位置埋め込み + タイムステップ埋め込み（正弦波） |
 | BPE | バイトレベル BPE | バイトレベル BPE（小文字化 + `</w>`） |
@@ -93,11 +93,11 @@ SD 1.5 以降、画像生成モデルは急速に進化しています。
 
 ### SDXL (2023)
 
-SD 1.5 の拡張版。U-Net のチャネル数を増加、テキストエンコーダを 2 つ（CLIP + OpenCLIP）に増やし、高解像度（1024×1024）に対応。基本アーキテクチャは SD 1.5 と同じです。
+SD 1.5 の拡張版。U-Net のチャネル数を増加、テキストエンコーダを 2 つ (CLIP + OpenCLIP) に増やし、高解像度（1024×1024）に対応。基本アーキテクチャは SD 1.5 と同じです。
 
 ### SD 3 / Flux (2024)
 
-U-Net を廃止し、**DiT（Diffusion Transformer）** を採用。画像パッチをトークンとして扱い、テキストトークンと結合して単一の Transformer で処理します。SpatialTransformer の「画像を系列に変換する」アイデアを全面的に採用した形です。
+U-Net を廃止し、**DiT** (Diffusion Transformer) を採用。画像パッチをトークンとして扱い、テキストトークンと結合して単一の Transformer で処理します。SpatialTransformer の「画像を系列に変換する」アイデアを全面的に採用した形です。
 
 ### 一貫性モデル (Consistency Models)
 

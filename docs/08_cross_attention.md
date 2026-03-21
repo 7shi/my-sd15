@@ -95,19 +95,19 @@ class BasicTransformerBlock:
         return x
 ```
 
-GPT-2 の Transformer Block が 2 サブ層（Attention + MLP）だったのに対し、SD 1.5 は **3 サブ層**です。
+GPT-2 の Transformer Block が 2 サブ層 (Attention + MLP) だったのに対し、SD 1.5 は **3 サブ層**です。
 
 | サブ層 | GPT-2 | SD 1.5 BasicTransformerBlock |
 |---|---|---|
-| 1 | Self-Attention | Self-Attention（`attn1`, context=None） |
-| 2 | MLP（GELU） | Cross-Attention（`attn2`, context=テキスト） |
+| 1 | Self-Attention | Self-Attention (`attn1`, context=None)  |
+| 2 | MLP (GELU)  | Cross-Attention（`attn2`, context=テキスト） |
 | 3 | — | GEGLU FFN |
 
 各サブ層は LayerNorm → 変換 → 残差接続の構造で、GPT-2 と同じ Pre-Norm パターンです。
 
 ## 5. GEGLU
 
-GPT-2 の MLP は `Linear → GELU → Linear` でしたが、SD 1.5 は **GEGLU**（Gated GELU）を使います。
+GPT-2 の MLP は `Linear → GELU → Linear` でしたが、SD 1.5 は **GEGLU** (Gated GELU) を使います。
 
 ```python
 class GEGLU:
