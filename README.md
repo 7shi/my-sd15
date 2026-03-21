@@ -121,29 +121,29 @@ miniSD のような単一ファイル形式のモデルは、`single2dir.py` で
 
 ### 画像生成の実行
 
-プロンプトを指定して画像を生成します。Sixel 対応ターミナルでは画像がインラインで表示されます。
+プロンプトを指定して画像を生成します。Sixel 対応ターミナルでは画像がインラインで表示されます。生成画像は `output/%s.png`（`%s` はシード値）に保存されます。
 
 ```bash
-uv run my-sd15 -p "a cat sitting on a windowsill" --seed 123 -o output.png
+uv run my-sd15 -p "a cat sitting on a windowsill"
 ```
 
 Anything V5 を使ってアニメ風の画像を生成できます。
 
 ```bash
-uv run my-sd15 -m genai-archive/anything-v5 -p "a cat sitting on a windowsill" --seed 123 -o output.png
+uv run my-sd15 -m genai-archive/anything-v5 -p "a cat sitting on a windowsill"
 ```
 
 #### 主なオプション:
 
 - `-p`, `--prompt`: 生成するテキスト条件（必須）。
 - `-n`, `--negative`: Negative Prompt。生成したくない要素を指定します。
-- `-m`, `--model`: モデル ID（デフォルト: `stable-diffusion-v1-5/stable-diffusion-v1-5`、例: `genai-archive/anything-v5`）。
+- `-m`, `--model`: モデル ID（デフォルト: `webui/miniSD`、例: `stable-diffusion-v1-5/stable-diffusion-v1-5`）。
 - `-s`, `--seed`: 乱数シード。複数回指定可能。指定した数が `--count` より少ない場合は乱数で補完されます。
 - `-S`, `--steps`: デノイジングステップ数（デフォルト: 10）。
 - `-C`, `--cfg`: CFG スケール（デフォルト: 7.5）。値を大きくするとプロンプトに忠実になります。
 - `-W`, `--width`: 画像の幅（デフォルト: 256）。8 の倍数に切り上げられます。
 - `-H`, `--height`: 画像の高さ（デフォルト: 256）。8 の倍数に切り上げられます。
-- `-c`, `--count`: 生成枚数（デフォルト: 1）。
+- `-c`, `--count`: 生成枚数（デフォルト: 1）。2 以上のとき、`-o` に `%s` が含まれない場合は拡張子の前に `-シード値` が自動付加されます。
 - `-o`, `--output`: 出力ファイルパス（デフォルト: `output/%s.png`、`%s` にシード値が入ります）。
 - `--no-show`: 生成画像をターミナルに表示しません。
 - `--no-progress`: デノイジングの進捗表示を無効にします。

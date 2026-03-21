@@ -1,10 +1,10 @@
 # Sample Images
 
-`make run` により、画像をまとめて生成します。👉[Makefile](../Makefile)
+`make samples` により、画像をまとめて生成します。👉[Makefile](../Makefile)
 
 CPU (WSL2) での実行時間を併記しています。実行時間はステップ数にほぼ比例します。本来 30 程度は必要ですが、時間節約のため 10 に減らしているため、画像の細部が甘くなっています。
 
-共通パラメーター: `-p "a cat sitting on a windowsill" --seed 123 --steps 10 --cfg 7.5`
+共通パラメーター: `-p "a cat sitting on a windowsill" --steps 10 --cfg 7.5 --seed 123`
 
 ※ ステップ数 10 は、画像が形になる最低限のステップです。👉[steps](../steps/README.md)
 

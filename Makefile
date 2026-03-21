@@ -1,4 +1,4 @@
-.PHONY: download run clean help
+.PHONY: help download run samples clean
 
 # 引数: (1)=model_id, (2)=files
 define download_model
@@ -15,6 +15,7 @@ help:
 	@echo "  make download-minisd  - Download miniSD"
 	@echo "  make download-any5    - Download Anything V5"
 	@echo "  make run              - Run generation with default prompt"
+	@echo "  make samples          - Generate sample images for all models (requires all weights)"
 	@echo "  make clean            - Remove all downloaded weights"
 
 download: download-sd15-tokenizer download-minisd
@@ -43,15 +44,20 @@ download-any5:
 	$(call download_model,$(ANY5_ID),$(ANY5_ST))
 	uv run single2dir.py --fp16 weights/$(ANY5_ID)/$(ANY5_ST)
 
-OPTIONS = -p "a cat sitting on a windowsill" --seed 123 --steps 10 --cfg 7.5
+OPTIONS = -p "a cat sitting on a windowsill" --steps 10 --cfg 7.5
 
 run:
-	uv run my-sd15 $(OPTIONS) -W 256 -H 256 -o samples/sd15-256x256.jpg
-	uv run my-sd15 $(OPTIONS) -W 512 -H 512 -o samples/sd15-512x512.jpg
-	uv run my-sd15 -m webui/miniSD $(OPTIONS) -W 256 -H 256 -o samples/minisd-256x256.jpg
-	uv run my-sd15 -m webui/miniSD $(OPTIONS) -W 512 -H 512 -o samples/minisd-512x512.jpg
-	uv run my-sd15 -m genai-archive/anything-v5 $(OPTIONS) -W 256 -H 256 -o samples/any5-256x256.jpg
-	uv run my-sd15 -m genai-archive/anything-v5 $(OPTIONS) -W 512 -H 512 -o samples/any5-512x512.jpg
+	uv run my-sd15 $(OPTIONS)
+
+SAMPLE_OPTS = $(OPTIONS) --seed 123
+
+samples:
+	uv run my-sd15 $(SAMPLE_OPTS) -W 256 -H 256 -o samples/sd15-256x256.jpg
+	uv run my-sd15 $(SAMPLE_OPTS) -W 512 -H 512 -o samples/sd15-512x512.jpg
+	uv run my-sd15 -m webui/miniSD $(SAMPLE_OPTS) -W 256 -H 256 -o samples/minisd-256x256.jpg
+	uv run my-sd15 -m webui/miniSD $(SAMPLE_OPTS) -W 512 -H 512 -o samples/minisd-512x512.jpg
+	uv run my-sd15 -m genai-archive/anything-v5 $(SAMPLE_OPTS) -W 256 -H 256 -o samples/any5-256x256.jpg
+	uv run my-sd15 -m genai-archive/anything-v5 $(SAMPLE_OPTS) -W 512 -H 512 -o samples/any5-512x512.jpg
 
 clean:
 	rm -rf weights

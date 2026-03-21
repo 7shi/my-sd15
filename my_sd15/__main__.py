@@ -7,7 +7,7 @@ def main():
     parser.add_argument("-p", "--prompt", type=str, required=True)
     parser.add_argument("-n", "--negative", type=str, default="",
                         help="Negative prompt")
-    parser.add_argument("-m", "--model", type=str, default=None,
+    parser.add_argument("-m", "--model", type=str, default="webui/miniSD",
                         help="Model ID under weights/ (e.g. genai-archive/anything-v5)")
     parser.add_argument("-s", "--seed", type=int, action="append", dest="seeds",
                         help="Random seed (can be specified multiple times)")
