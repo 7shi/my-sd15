@@ -46,12 +46,12 @@ download-any5:
 OPTIONS = -p "a cat sitting on a windowsill" --seed 123 --steps 10 --cfg 7.5
 
 run:
-	#uv run my-sd15 $(OPTIONS) -W 256 -H 256 -o samples/sd15-256x256.jpg
-	#uv run my-sd15 $(OPTIONS) -W 512 -H 512 -o samples/sd15-512x512.jpg
+	uv run my-sd15 $(OPTIONS) -W 256 -H 256 -o samples/sd15-256x256.jpg
+	uv run my-sd15 $(OPTIONS) -W 512 -H 512 -o samples/sd15-512x512.jpg
 	uv run my-sd15 -m webui/miniSD $(OPTIONS) -W 256 -H 256 -o samples/minisd-256x256.jpg
 	uv run my-sd15 -m webui/miniSD $(OPTIONS) -W 512 -H 512 -o samples/minisd-512x512.jpg
-	#uv run my-sd15 -m genai-archive/anything-v5 $(OPTIONS) -W 256 -H 256 -o samples/any5-256x256.jpg
-	#uv run my-sd15 -m genai-archive/anything-v5 $(OPTIONS) -W 512 -H 512 -o samples/any5-512x512.jpg
+	uv run my-sd15 -m genai-archive/anything-v5 $(OPTIONS) -W 256 -H 256 -o samples/any5-256x256.jpg
+	uv run my-sd15 -m genai-archive/anything-v5 $(OPTIONS) -W 512 -H 512 -o samples/any5-512x512.jpg
 
 clean:
 	rm -rf weights
