@@ -124,11 +124,15 @@ miniSD のような単一ファイル形式のモデルは、`single2dir.py` で
 
 ### 画像生成の実行
 
-プロンプトを指定して画像を生成します。Sixel 対応ターミナルでは画像がインラインで表示されます。生成画像は `output/%s.png`（`%s` はシード値）に保存されます。
+プロンプトを指定して画像を生成します。シード値を指定しなければ、毎回異なる画像が生成されます。
+
+デフォルトのモデルは miniSD で、256×256 の画像が生成されます。生成画像は `output/%s.png`（`%s` はシード値）に保存されます。Sixel 対応ターミナルでは画像がインラインで表示されます。
 
 ```bash
 uv run my-sd15 -p "a cat sitting on a windowsill"
 ```
+
+![生成例](images/minisd-0491143378.jpg)
 
 Anything V5 を使ってアニメ風の画像を生成できます。
 
@@ -136,16 +140,20 @@ Anything V5 を使ってアニメ風の画像を生成できます。
 uv run my-sd15 -m genai-archive/anything-v5 -p "a cat sitting on a windowsill"
 ```
 
-LCM LoRA を適用すると、SD 1.5 で 2 ステップの高速生成が可能です。
+![生成例](images/any5-1001330493.jpg)
+
+LCM LoRA を適用すると、SD 1.5 で 2～4 ステップの高速生成が可能です。
 
 ```bash
 uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 \
   --lora latent-consistency/lcm-lora-sdv1-5 \
-  --lcm --steps 2 --cfg 1.0 -W 512 -H 512 \
+  --lcm --steps 3 --cfg 1.0 -W 512 -H 512 \
   -p "a cat sitting on a windowsill"
 ```
 
-#### 主なオプション:
+![生成例](images/lcm-0684539746.jpg)
+
+### 主なオプション:
 
 - `-p`, `--prompt`: 生成するテキスト条件（必須）。
 - `-n`, `--negative`: Negative Prompt。生成したくない要素を指定します。
