@@ -120,7 +120,7 @@ uv run my-sd15 -m genai-archive/anything-v5 -p "a cat sitting on a windowsill" -
 
 重みを差し替えるだけで、画風が大きく変わります。これはモデルの構造ではなく、学習データの違いによるものです。
 
-## LoRA による高速生成
+## LCM LoRA による高速生成
 
 LoRA (Low-Rank Adaptation) は、学習済みモデルの重みを少量のパラメータで修正する手法です。ここでは LCM LoRA を使い、通常 10 ステップかかるデノイジングを **2 ステップ**に短縮します。
 
@@ -135,13 +135,13 @@ make download-lcm
 ```bash
 uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 \
   --lora weights/latent-consistency/lcm-lora-sdv1-5/pytorch_lora_weights.safetensors \
-  --lcm --steps 2 --cfg 1.0 -W 512 -H 512 \
+  --lcm --steps 4 --cfg 1.0 -W 512 -H 512 \
   -p "a cat sitting on a windowsill" --seed 42 -o lcm.png
 ```
 
 ![lcm](01/lcm.png)
 
-通常の SD 1.5 では 10 ステップでも数分かかる 512×512 の画像が、2 ステップで生成できます。LoRA の仕組みについては [12 章](12_lora.md)で詳しく解説します。
+通常の SD 1.5 では 10 ステップ以上が必要となる 512×512 の画像が、2～4 ステップで生成できます。LCM LoRA の仕組みについては [12 章](12_lora.md)で詳しく解説します。
 
 ## まとめ
 

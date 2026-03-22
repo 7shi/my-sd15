@@ -60,7 +60,6 @@ class LCMScheduler:
         t_prev = self._prev_timestep[t]
 
         pred_x0 = (sample - torch.sqrt(1.0 - alpha_t) * noise_pred) / torch.sqrt(alpha_t)
-        pred_x0 = pred_x0.clamp(-1.0, 1.0)
 
         if t_prev >= 0:
             # Re-noise pred_x0 to level t_prev with random noise (not noise_pred)

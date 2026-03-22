@@ -45,10 +45,10 @@ download-any5:
 	$(call download_model,$(ANY5_ID),$(ANY5_ST))
 	uv run single2dir.py --bits 16 weights/$(ANY5_ID)/$(ANY5_ST)
 
-LCM_LORA_ID = latent-consistency/lcm-lora-sdv1-5
+LCM_ID = latent-consistency/lcm-lora-sdv1-5
 
 download-lcm:
-	$(call download_model,$(LCM_LORA_ID),pytorch_lora_weights.safetensors)
+	$(call download_model,$(LCM_ID),pytorch_lora_weights.safetensors)
 
 PROMPT  = -p "a cat sitting on a windowsill"
 OPTIONS = $(PROMPT) --steps 10 --cfg 7.5
@@ -58,7 +58,7 @@ run:
 
 SEED = --seed 123
 SAMPLE_OPTS = $(OPTIONS) $(SEED)
-LCM_OPTS = $(PROMPT) --steps 2 --cfg 1 $(SEED) --lcm --lora weights/$(LCM_LORA_ID)/pytorch_lora_weights.safetensors
+LCM_OPTS = $(PROMPT) --steps 3 --cfg 1 $(SEED) --lcm --lora weights/$(LCM_ID)/pytorch_lora_weights.safetensors
 
 samples:
 	uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 $(SAMPLE_OPTS) -W 256 -H 256 -o samples/sd15-256x256.jpg

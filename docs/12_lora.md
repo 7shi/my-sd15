@@ -171,21 +171,36 @@ for i, t in enumerate(ts_list):
     self._prev_timestep[t] = ts_list[i + 1] if i + 1 < len(ts_list) else -1
 ```
 
-### ステップ関数
+### ステップ関数（Algorithm 2）
 
-ステップ関数自体は DDIM と同じ式（$\eta=0$）です。唯一の違いは `pred_x0` のクランプです。
+LCM のステップ関数は DDIM と似ていますが、**再ノイズ化の方法が異なります**。DDIM は予測ノイズ `noise_pred` で決定的に再ノイズ化しますが、LCM は**ランダムノイズ**で再ノイズ化します（論文 Algorithm 2: Multistep Latent Consistency Sampling）。
 
 ```python
-def step(self, noise_pred, t, sample):
+def step(self, noise_pred, t, sample, generator=None):
     alpha_t = self.alphas_cumprod[t]
     t_prev = self._prev_timestep[t]  # スケジュールから取得
-    alpha_t_prev = self.alphas_cumprod[t_prev] if t_prev >= 0 else torch.tensor(1.0)
 
     pred_x0 = (sample - sqrt(1 - alpha_t) * noise_pred) / sqrt(alpha_t)
-    pred_x0 = pred_x0.clamp(-1.0, 1.0)  # LCM では clamp する
-    prev_sample = sqrt(alpha_t_prev) * pred_x0 + sqrt(1 - alpha_t_prev) * noise_pred
-    return prev_sample
+
+    if t_prev >= 0:
+        # 中間ステップ: ランダムノイズで再ノイズ化
+        alpha_t_prev = self.alphas_cumprod[t_prev]
+        noise = torch.randn_like(pred_x0, generator=generator)
+        return sqrt(alpha_t_prev) * pred_x0 + sqrt(1 - alpha_t_prev) * noise
+    else:
+        # 最終ステップ: pred_x0 をそのまま返す
+        return pred_x0
 ```
+
+DDIM との違いをまとめます。
+
+| | DDIM | LCM |
+|---|---|---|
+| 再ノイズ化 | `noise_pred`（予測ノイズ、決定的） | `randn`（ランダムノイズ） |
+| 最終ステップ | 他と同じ式（`alpha_t_prev=1` で自然に消える） | `pred_x0` を直接返す |
+| `pred_x0` のクランプ | なし | なし |
+
+再ノイズ化に `noise_pred` を使うと、U-Net の出力に含まれる構造的なパターンが次のステップに持ち込まれ、メッシュ状の artifact が蓄積されます。ランダムノイズは全周波数が均等な白色雑音なので、この自己強化フィードバックを断ち切ります。
 
 ### CFG の扱い
 

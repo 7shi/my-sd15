@@ -649,6 +649,61 @@ prev_sample = sqrt(alpha_t_prev) * pred_x0
             + sqrt(1 - alpha_t_prev) * noise_pred
 ```
 
+## 7b. LCM Scheduler
+
+Used with LCM LoRA for few-step inference (1-4 steps).
+Same beta schedule and alpha_cumprod as DDIM. No learned parameters.
+
+Reference: Luo et al., "Latent Consistency Models" (2023), Algorithm 2.
+
+### Timestep selection
+```
+original_steps = 50
+c = 1000 // original_steps                              # 20
+lcm_timesteps = arange(1, original_steps + 1) * c - 1   # [19, 39, ..., 999]
+skip = len(lcm_timesteps) // num_inference_steps
+timesteps = reverse(lcm_timesteps)[::skip][:num_inference_steps]
+```
+
+For 2 steps: [999, 499]
+For 4 steps: [999, 739, 479, 219]
+
+Previous timestep is looked up from the schedule (not computed by subtraction):
+```
+prev_timestep = {999: 499, 499: -1}   # example for 2 steps
+```
+
+### LCM step (Algorithm 2: Multistep Latent Consistency Sampling)
+
+Each step predicts z0 directly, then re-noises with **random noise** (not noise_pred).
+
+```
+alpha_t = alpha_cumprod[t]
+pred_x0 = (sample - sqrt(1 - alpha_t) * noise_pred) / sqrt(alpha_t)
+
+if t_prev >= 0:
+    # Intermediate step: re-noise with random noise
+    alpha_t_prev = alpha_cumprod[t_prev]
+    noise = randn_like(pred_x0, generator=generator)
+    prev_sample = sqrt(alpha_t_prev) * pred_x0
+                + sqrt(1 - alpha_t_prev) * noise
+else:
+    # Final step: return pred_x0 directly
+    prev_sample = pred_x0
+```
+
+Key differences from DDIM:
+
+| | DDIM | LCM |
+|---|---|---|
+| Re-noising | noise_pred (deterministic) | randn (random) |
+| Final step | Same formula (alpha_t_prev=1 zeroes noise term) | Return pred_x0 directly |
+| pred_x0 clamp | None | None |
+| CFG scale | 7.5 (typical) | 1.0 (guidance baked into LoRA) |
+
+**Important**: Do NOT clamp pred_x0 to [-1, 1]. Latent space values routinely
+exceed this range. Clamping destroys detail (e.g., fine textures become blurred).
+
 ## 8. Full Pipeline
 
 ```python
