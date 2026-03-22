@@ -212,37 +212,7 @@ DDIM との違いをまとめます。
 
 ## 実験：LCM LoRA の適用
 
-LoRA のキー構造の確認、重みマージ、2 ステップでの画像生成を行います。実行結果は以下のとおりです。
-
-```
-=== 1. LoRA ファイルの構造 ===
-各ターゲットのキー:
-  *.alpha              (スカラー: スケーリング係数)
-  *.lora_down.weight   (A 行列: 入力 → r)
-  *.lora_up.weight     (B 行列: r → 出力)
-
-LoRA ターゲット数: 278
-ランク r: 64, alpha: 8.0, scale: 0.125
-
-=== 2. 適用対象の内訳 ===
-  ResBlock / Conv:                86
-  FFN (GEGLU):                    32
-  proj_in / proj_out:             32
-  Self-Attention (to_q/k/v/out):  64
-  Cross-Attention (to_q/k/v/out): 64
-
-=== 3. shape の例 ===
-Linear 層 (attn1.to_q, in=320, out=320, r=64):
-  down: (64, 320), up: (320, 64)
-  → delta: (320, 320)
-Conv 層 (resnet.conv1, C_in=320, C_out=320, r=64):
-  down: (64, 320, 3, 3), up: (320, 64, 1, 1)
-  → delta: (320, 320, 3, 3)
-
-=== 4. LCM スケジューラー ===
-タイムステップ (2 steps): [999, 499]
-prev_timestep: {999: 499, 499: -1}
-```
+LCM LoRA ファイルの構造や適用対象の内訳など、本文中の数値を確認するためのスクリプトです。
 
 **実行方法**: ([12_lora.py](12_lora.py))
 

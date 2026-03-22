@@ -145,39 +145,7 @@ class SpatialTransformer:
 
 ## 実験：Cross-Attention の動作確認
 
-Self-Attention と Cross-Attention の違い、SpatialTransformer の reshape を確認します。実行結果は以下のとおりです。
-
-```
-=== 1. Self-Attention vs Cross-Attention ===
-Self-Attention:
-  入力 x:     (1024, 320)
-  出力:       (1024, 320)
-Cross-Attention:
-  入力 x:     (1024, 320) (Q の出所)
-  context:    (77, 768) (K/V の出所)
-  出力:       (1024, 320)
-
-=== 2. BasicTransformerBlock ===
-入力:   (1024, 320)
-出力:   (1024, 320)
-残差の効果: 入出力の差の平均 = 0.2815
-
-=== 3. SpatialTransformer (2D → 系列 → 2D) ===
-入力 (画像): (320, 32, 32)
-  → reshape: (320, 1024) → (1024, 320) [系列として処理]
-  → reshape: (320, 32, 32) [画像に戻す]
-出力 (画像): (320, 32, 32)
-
-=== 4. パラメータ比較 ===
-Self-Attention (attn1):
-  to_q.weight: (320, 320)
-  to_q.bias:   なし（GPT-2 との違い）
-Cross-Attention (attn2):
-  to_q.weight: (320, 320) (入力: 320 dim)
-  to_k.weight: (320, 768) (入力: 768 dim = CLIP 出力)
-```
-
-Cross-Attention の `to_k.weight` が `(320, 768)` であることに注目してください。K と V の入力次元が 768（CLIP の出力次元）であるのに対し、Q の入力次元は 320（画像特徴の次元）です。これが「画像が問いかけ、テキストが答える」という Cross-Attention の構造を反映しています。
+Self-Attention と Cross-Attention の違い、SpatialTransformer の reshape を確認します。Cross-Attention の `to_k.weight` が `(320, 768)` であることに注目してください。K と V の入力次元が 768（CLIP の出力次元）であるのに対し、Q の入力次元は 320（画像特徴の次元）です。これが「画像が問いかけ、テキストが答える」という Cross-Attention の構造を反映しています。
 
 また、Self-Attention の `to_q` にバイアスがないことは GPT-2 との違いです。GPT-2 の Attention は Q, K, V すべてにバイアスがありました。
 
