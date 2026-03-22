@@ -54,13 +54,18 @@ class LCMScheduler:
         for i, t in enumerate(ts_list):
             self._prev_timestep[t] = ts_list[i + 1] if i + 1 < len(ts_list) else -1
 
-    def step(self, noise_pred, t, sample):
-        """LCM step (deterministic)."""
+    def step(self, noise_pred, t, sample, generator=None):
+        """LCM step: predict z0, then re-noise with random noise (Algorithm 2)."""
         alpha_t = self.alphas_cumprod[t]
         t_prev = self._prev_timestep[t]
-        alpha_t_prev = self.alphas_cumprod[t_prev] if t_prev >= 0 else torch.tensor(1.0)
 
         pred_x0 = (sample - torch.sqrt(1.0 - alpha_t) * noise_pred) / torch.sqrt(alpha_t)
         pred_x0 = pred_x0.clamp(-1.0, 1.0)
-        prev_sample = torch.sqrt(alpha_t_prev) * pred_x0 + torch.sqrt(1.0 - alpha_t_prev) * noise_pred
-        return prev_sample
+
+        if t_prev >= 0:
+            # Re-noise pred_x0 to level t_prev with random noise (not noise_pred)
+            alpha_t_prev = self.alphas_cumprod[t_prev]
+            noise = torch.randn_like(pred_x0, generator=generator)
+            return torch.sqrt(alpha_t_prev) * pred_x0 + torch.sqrt(1.0 - alpha_t_prev) * noise
+        else:
+            return pred_x0
