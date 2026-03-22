@@ -1,4 +1,4 @@
-ページ：[01](01_quickstart.md) | [02](02_overview.md) | **03** | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | [12](12_architecture.md)
+ページ：[01](01_quickstart.md) | [02](02_overview.md) | **03** | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | [12](12_lora.md) | [13](13_architecture.md)
 
 ---
 
@@ -145,4 +145,4 @@ uv run docs/03_clip.py
 
 ---
 
-ページ：[01](01_quickstart.md) | [02](02_overview.md) | **03** | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | [12](12_architecture.md)
+ページ：[01](01_quickstart.md) | [02](02_overview.md) | **03** | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | [12](12_lora.md) | [13](13_architecture.md)

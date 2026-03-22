@@ -1,4 +1,4 @@
-ページ：[01](01_quickstart.md) | **02** | [03](03_clip.md) | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | [12](12_architecture.md)
+ページ：[01](01_quickstart.md) | **02** | [03](03_clip.md) | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | [12](12_lora.md) | [13](13_architecture.md)
 
 ---
 
@@ -93,6 +93,7 @@ SD 1.5 で初めて登場する概念は以下のとおりです。
 - **Cross-Attention** — テキスト条件を画像特徴に注入する仕組み（👉[08](08_cross_attention.md)）
 - **拡散過程** — ノイズの付加と除去の数理（👉[09](09_ddim.md)）
 - **VAE** — 潜在空間とピクセル空間の変換（👉[10](10_vae.md)）
+- **LoRA** — 学習済み重みに低ランクの差分を加えて振る舞いを変更（👉[12](12_lora.md)）
 
 ## 実験：パイプラインの各段階を追跡
 
@@ -122,4 +123,4 @@ uv run docs/02_overview.py
 
 ---
 
-ページ：[01](01_quickstart.md) | **02** | [03](03_clip.md) | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | [12](12_architecture.md)
+ページ：[01](01_quickstart.md) | **02** | [03](03_clip.md) | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | [12](12_lora.md) | [13](13_architecture.md)

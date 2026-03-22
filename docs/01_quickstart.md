@@ -1,4 +1,4 @@
-ページ：**01** | [02](02_overview.md) | [03](03_clip.md) | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | [12](12_architecture.md)
+ページ：**01** | [02](02_overview.md) | [03](03_clip.md) | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | [12](12_lora.md) | [13](13_architecture.md)
 
 ---
 
@@ -120,10 +120,33 @@ uv run my-sd15 -m genai-archive/anything-v5 -p "a cat sitting on a windowsill" -
 
 重みを差し替えるだけで、画風が大きく変わります。これはモデルの構造ではなく、学習データの違いによるものです。
 
+## LoRA による高速生成
+
+LoRA (Low-Rank Adaptation) は、学習済みモデルの重みを少量のパラメータで修正する手法です。ここでは LCM LoRA を使い、通常 10 ステップかかるデノイジングを **2 ステップ**に短縮します。
+
+まず LCM LoRA の重みをダウンロードします。
+
+```bash
+make download-lcm
+```
+
+`--lora` で LoRA ファイルを指定し、`--lcm` で LCM 専用スケジューラーを有効にします。LCM LoRA は CFG を内部に取り込んでいるため `--cfg 1.0` とし、ステップ数は `--steps 2` にします。
+
+```bash
+uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 \
+  --lora weights/latent-consistency/lcm-lora-sdv1-5/pytorch_lora_weights.safetensors \
+  --lcm --steps 2 --cfg 1.0 -W 512 -H 512 \
+  -p "a cat sitting on a windowsill" --seed 42 -o lcm.png
+```
+
+![lcm](01/lcm.png)
+
+通常の SD 1.5 では 10 ステップでも数分かかる 512×512 の画像が、2 ステップで生成できます。LoRA の仕組みについては [12 章](12_lora.md)で詳しく解説します。
+
 ## まとめ
 
-この章では SD 1.5 をブラックボックスとして使い、プロンプト・ステップ数・CFG スケール・シード・Negative Prompt といったパラメータが生成結果にどう影響するかを体験しました。次章からは、このパイプラインの内部でどのような計算が行われているかを順に解きほぐしていきます。
+この章では SD 1.5 をブラックボックスとして使い、プロンプト・ステップ数・CFG スケール・シード・Negative Prompt・LoRA といったパラメータが生成結果にどう影響するかを体験しました。次章からは、このパイプラインの内部でどのような計算が行われているかを順に解きほぐしていきます。
 
 ---
 
-ページ：**01** | [02](02_overview.md) | [03](03_clip.md) | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | [12](12_architecture.md)
+ページ：**01** | [02](02_overview.md) | [03](03_clip.md) | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | [12](12_lora.md) | [13](13_architecture.md)

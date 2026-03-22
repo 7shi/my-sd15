@@ -1,0 +1,239 @@
+ページ：[01](01_quickstart.md) | [02](02_overview.md) | [03](03_clip.md) | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | **12** | [13](13_architecture.md)
+
+---
+
+# LoRA: 低ランク適応による重みの修正
+
+これまでの章では SD 1.5 の推論パイプラインをスクラッチ実装し、テキストから画像を生成できるようになりました。この章では、学習済みモデルの振る舞いを少量のパラメータで変更する **LoRA (Low-Rank Adaptation)** を扱います。
+
+## 1. LoRA の動機
+
+SD 1.5 の U-Net には約 8.6 億個のパラメータがあります。特定のスタイルやキャラクターを学習させるためにこれらすべてを再学習 (fine-tuning) すると、計算コストが高く、保存も大変です。
+
+LoRA は「重み行列全体を動かす代わりに、少数の方向だけを動かす」というアイデアで、元の重みを凍結したまま、わずかな追加パラメータで振る舞いを変えます。ソフトウェア開発に例えると、ソースコード全体を書き換える代わりに**パッチ（差分）**だけを配布するようなものです。LoRA はさらに、その差分自体を低ランク分解で圧縮しています。
+
+## 2. 低ランク分解
+
+元の線形変換 $y = Wx$ に対し、LoRA は差分 $\Delta W$ を**低ランク行列の積**として表現します。
+
+$$y = Wx + \Delta Wx = Wx + BAx$$
+
+ここで $W$ は $(m \times n)$ の元の重み行列、$A$ は $(r \times n)$、$B$ は $(m \times r)$ です。$r$ はランクと呼ばれ、通常 4〜128 の小さな値です。
+
+### ランク r=1 の場合
+
+$A$ と $B$ はそれぞれベクトルになり、$BA$ は外積（直積）です。
+
+$$\Delta W = \mathbf{b} \mathbf{a}^T \quad (m \times n \text{ の行列})$$
+
+2 本のベクトル（$m + n$ 個のパラメータ）だけで $m \times n$ の行列を表現しますが、変化の「方向」は 1 つだけに限られます。
+
+### ランク r>1 の場合
+
+$r$ 個のベクトル対による外積の重ね合わせになります。
+
+$$\Delta W = \sum_{i=1}^{r} \mathbf{b}_i \mathbf{a}_i^T$$
+
+パラメータ数は $r \times (m + n)$ で、$r$ が小さければ元の $m \times n$ より大幅に少なくなります。
+
+### 具体例
+
+[Cross-Attention](08_cross_attention.md) の `to_k.weight` $(320 \times 768)$ に $r=4$ の LoRA を適用する場合:
+
+| | パラメータ数 | 比率 |
+|---|---|---|
+| 元の重み行列 | $320 \times 768 = 245{,}760$ | 100% |
+| LoRA ($A$ + $B$) | $4 \times (320 + 768) = 4{,}352$ | 1.8% |
+
+わずか 1.8% のパラメータで重み行列の修正を表現できます。
+
+## 3. スケーリング
+
+実際の LoRA には**スケーリング係数**があります。
+
+$$W' = W + \frac{\alpha}{r} \cdot BA$$
+
+$\alpha$ は LoRA の学習時に設定される定数で、推論時にさらにユーザー指定の `scale` を掛けることもあります。$\alpha / r$ で正規化することで、ランク $r$ を変えても出力のスケールが大きく変わらないようにしています。
+
+## 4. 重みのマージ
+
+LoRA は推論時に元の重みと事前にマージできます。
+
+$$W' = W + \frac{\alpha}{r} \cdot BA$$
+
+マージ後は追加のコストなく通常どおり推論できます。これが LoRA の実用上の大きな利点です。本実装でもこの方式を採用しています。
+
+```python
+# Linear 層の場合: down (r, n), up (m, r)
+delta = up @ down                     # (m, n)
+state[key] += scale * (alpha / r) * delta
+```
+
+## 5. SD 1.5 での適用対象
+
+LoRA は原理上どの線形層にも適用できますが、目的によって適用範囲が異なります。
+
+### スタイル/キャラクター LoRA
+
+**[Cross-Attention](08_cross_attention.md) の線形層** (`to_q`, `to_k`, `to_v`, `to_out`) だけを変更するのが一般的です。Cross-Attention はテキストと画像の対応関係を決める層なので、ここを変えることで「特定の単語に特定の画像特徴を対応させる」ことができます。
+
+### LCM LoRA: 全層への適用
+
+LCM (Latent Consistency Model) LoRA は、通常 50 ステップ必要なデノイジングを **2〜4 ステップ**に短縮します。これはテキストと画像の対応関係だけでなく、デノイジングプロセス自体を変える必要があるため、U-Net の**ほぼ全層**に LoRA を適用します。
+
+```
+適用対象の内訳（LCM LoRA の場合、全 278 箇所）:
+
+  ResBlock / Conv                 86
+  FFN (GEGLU)                     32
+  proj_in / proj_out              32
+  Self-Attention  to_q/k/v/out    64
+  Cross-Attention to_q/k/v/out    64
+```
+
+ランクは全て $r=64$、$\alpha=8$（スケール $\alpha/r = 0.125$）です。
+
+### Conv 層への LoRA
+
+[04 章](04_conv2d.md)で Conv2D を im2col + 行列積として実装したことを思い出してください。Conv2D も結局は行列積なので、同じ手法が使えます。
+
+LoRA の重みの shape は通常の行列とは異なります。
+
+```
+Conv LoRA の例（3×3 カーネル、C_in=320, C_out=320, r=64）:
+  down: (64, 320, 3, 3)    ← 入力チャネルとカーネルを保持
+  up:   (320, 64, 1, 1)    ← 出力チャネル方向のみ
+```
+
+`up` が $1 \times 1$ カーネルなのは、出力チャネル方向の混合だけを LoRA が担い、空間方向のパターン（$3 \times 3$）は `down` 側に任せているためです。実装では reshape して行列積を取り、元の shape に戻します。
+
+```python
+# Conv 層の場合: down (r, C_in, kH, kW), up (C_out, r, 1, 1)
+delta = (up.squeeze(-1).squeeze(-1) @ down.reshape(r, -1))  # (C_out, C_in*kH*kW)
+delta = delta.reshape(weight.shape)                          # (C_out, C_in, kH, kW)
+state[key] += scale * (alpha / r) * delta
+```
+
+## 6. キー名のマッピング
+
+LoRA ファイル内のキー名はモデルの重み名と形式が異なります。
+
+```
+LoRA:  lora_unet_down_blocks_0_attentions_0_transformer_blocks_0_attn1_to_q
+モデル: down_blocks.0.attentions.0.transformer_blocks.0.attn1.to_q.weight
+```
+
+`.` が `_` に置換され、`lora_unet_` プレフィックスが付加されています。逆変換は、モデルの全キーからアンダースコア版を生成して逆引き辞書を作ることで実現します。
+
+```python
+def _build_key_map(state):
+    key_map = {}
+    for model_key in state:
+        if not model_key.endswith(".weight"):
+            continue
+        base = model_key.removesuffix(".weight").replace(".", "_")
+        key_map[base] = model_key
+    return key_map
+```
+
+## 7. LCM スケジューラー
+
+LCM LoRA を使うには、DDIM とは異なるスケジューラーが必要です。
+
+### タイムステップの選択
+
+DDIM は 1000 ステップを等間隔に間引きます（10 ステップなら `[900, 800, ..., 0]`）。LCM は学習時の `original_steps`（通常 50）に基づいてタイムステップを選びます。
+
+```python
+c = 1000 // original_steps  # 20
+# 基準ステップ列: [19, 39, 59, ..., 999]
+lcm_timesteps = torch.arange(1, original_steps + 1) * c - 1
+# 等間隔に num_steps 個選択: 例えば 2 ステップなら [999, 499]
+```
+
+### 前のタイムステップの決定
+
+DDIM ではタイムステップが等間隔なので、「前のタイムステップ」は `t - step_ratio` で計算できます。
+
+```python
+# DDIM: 等間隔なので単純な引き算で OK
+# [900, 800, 700, ...] → t=900 の prev は 900-100=800
+t_prev = t - int(self._step_ratio)
+```
+
+LCM のタイムステップは等間隔ではありません（例: `[999, 499]`）。`999 - 20 = 979` としても、それは次のステップ 499 ではなく無関係な値です。LCM では**スケジュール自体から**次のタイムステップを取得する必要があります。
+
+```python
+# LCM: スケジュールに沿った prev_timestep テーブルを構築
+# [999, 499] → {999: 499, 499: -1}
+self._prev_timestep = {}
+for i, t in enumerate(ts_list):
+    self._prev_timestep[t] = ts_list[i + 1] if i + 1 < len(ts_list) else -1
+```
+
+### ステップ関数
+
+ステップ関数自体は DDIM と同じ式（$\eta=0$）です。唯一の違いは `pred_x0` のクランプです。
+
+```python
+def step(self, noise_pred, t, sample):
+    alpha_t = self.alphas_cumprod[t]
+    t_prev = self._prev_timestep[t]  # スケジュールから取得
+    alpha_t_prev = self.alphas_cumprod[t_prev] if t_prev >= 0 else torch.tensor(1.0)
+
+    pred_x0 = (sample - sqrt(1 - alpha_t) * noise_pred) / sqrt(alpha_t)
+    pred_x0 = pred_x0.clamp(-1.0, 1.0)  # LCM では clamp する
+    prev_sample = sqrt(alpha_t_prev) * pred_x0 + sqrt(1 - alpha_t_prev) * noise_pred
+    return prev_sample
+```
+
+### CFG の扱い
+
+通常の推論では CFG (Classifier-Free Guidance) のために U-Net を**条件あり・なしの 2 回**呼び出します（[11 章](11_pipeline.md)参照）。LCM LoRA は学習時に CFG の効果を LoRA 内に取り込んでいるため、推論時は `cfg_scale=1.0` とします。これにより U-Net の呼び出しは実質 1 回分の効果しか持たず、ステップ数の削減と合わせて大幅な高速化が得られます。
+
+## 実験：LCM LoRA の適用
+
+LoRA のキー構造の確認、重みマージ、2 ステップでの画像生成を行います。実行結果は以下のとおりです。
+
+```
+=== 1. LoRA ファイルの構造 ===
+各ターゲットのキー:
+  *.alpha              (スカラー: スケーリング係数)
+  *.lora_down.weight   (A 行列: 入力 → r)
+  *.lora_up.weight     (B 行列: r → 出力)
+
+LoRA ターゲット数: 278
+ランク r: 64, alpha: 8.0, scale: 0.125
+
+=== 2. 適用対象の内訳 ===
+  ResBlock / Conv:                86
+  FFN (GEGLU):                    32
+  proj_in / proj_out:             32
+  Self-Attention (to_q/k/v/out):  64
+  Cross-Attention (to_q/k/v/out): 64
+
+=== 3. shape の例 ===
+Linear 層:
+  down: (64, 320), up: (320, 64)
+  → delta: (320, 320)
+Conv 層:
+  down: (64, 320, 3, 3), up: (320, 64, 1, 1)
+  → delta: (320, 320, 3, 3)
+
+=== 4. LCM スケジューラー ===
+タイムステップ (2 steps): [999, 499]
+prev_timestep: {999: 499, 499: -1}
+
+=== 5. 画像生成 (2 steps) ===
+生成完了: images/lcm_lora.png
+```
+
+**実行方法**: ([12_lora.py](12_lora.py))
+
+```bash
+uv run docs/12_lora.py
+```
+
+---
+
+ページ：[01](01_quickstart.md) | [02](02_overview.md) | [03](03_clip.md) | [04](04_conv2d.md) | [05](05_groupnorm.md) | [06](06_resblock.md) | [07](07_unet.md) | [08](08_cross_attention.md) | [09](09_ddim.md) | [10](10_vae.md) | [11](11_pipeline.md) | **12** | [13](13_architecture.md)

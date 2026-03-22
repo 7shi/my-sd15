@@ -51,12 +51,15 @@ def load_vae_decoder(weights_dir):
     return model
 
 
-def load_unet(weights_dir):
-    """Load U-Net from weights."""
+def load_unet(weights_dir, lora_path=None, lora_scale=1.0):
+    """Load U-Net from weights, optionally applying LoRA."""
     from my_sd15.unet import UNet
 
     path = os.path.join(weights_dir, "unet", "diffusion_pytorch_model.safetensors")
     state = load_safetensors(path)
+    if lora_path is not None:
+        from my_sd15.lora import apply_lora
+        apply_lora(state, lora_path, lora_scale)
     model = UNet(state)
     return model
 
@@ -69,7 +72,7 @@ def _resolve_weights_dir(model_id=None):
     return os.path.join(weights_base, model_id)
 
 
-def load_model(model_id=None):
+def load_model(model_id=None, lora_path=None, lora_scale=1.0, scheduler=None):
     """Load all SD 1.5 components and return an SD15Model instance."""
     from my_sd15.model import SD15Model
     from my_sd15.scheduler import DDIMScheduler
@@ -83,8 +86,9 @@ def load_model(model_id=None):
 
     tokenizer = CLIPTokenizer.from_pretrained(tokenizer_dir)
     text_encoder = load_clip_text_model(weights_dir)
-    unet = load_unet(weights_dir)
+    unet = load_unet(weights_dir, lora_path=lora_path, lora_scale=lora_scale)
     vae = load_vae_decoder(weights_dir)
-    scheduler = DDIMScheduler()
+    if scheduler is None:
+        scheduler = DDIMScheduler()
 
     return SD15Model(tokenizer=tokenizer, text_encoder=text_encoder, unet=unet, vae=vae, scheduler=scheduler)

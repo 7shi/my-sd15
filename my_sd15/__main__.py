@@ -19,6 +19,12 @@ def main():
                         help="Number of images to generate")
     parser.add_argument("-o", "--output", type=str, default="output/%s.png",
                         help="Output file path (use %s to include seed)")
+    parser.add_argument("--lora", type=str, default=None,
+                        help="Path to LoRA safetensors file")
+    parser.add_argument("--lora-scale", type=float, default=1.0,
+                        help="LoRA scaling factor")
+    parser.add_argument("--lcm", action="store_true",
+                        help="Use LCM scheduler (for LCM LoRA)")
     parser.add_argument("--no-show", action="store_true",
                         help="Save image without displaying")
     parser.add_argument("--no-progress", action="store_true",
@@ -37,8 +43,14 @@ def main():
     from my_sd15.loader import load_model
     from my_sd15.model import save_image
 
+    scheduler = None
+    if args.lcm:
+        from my_sd15.scheduler import LCMScheduler
+        scheduler = LCMScheduler()
+
     print("Loading model...")
-    model = load_model(model_id=args.model)
+    model = load_model(model_id=args.model, lora_path=args.lora,
+                       lora_scale=args.lora_scale, scheduler=scheduler)
 
     if len(seeds) < args.count:
         seeds += torch.randint(0, 2**30, (args.count - len(seeds),)).tolist()

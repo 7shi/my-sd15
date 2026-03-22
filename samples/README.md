@@ -18,6 +18,14 @@ CPU (WSL2) での実行時間を併記しています。実行時間はステッ
 |:---:|:---:|
 | ![sd15-256x256](sd15-256x256.jpg) | ![sd15-512x512](sd15-512x512.jpg) |
 
+### LCM LoRA（2 ステップ）
+
+LCM LoRA を適用すると、2 ステップで画像を生成できます（`--lcm --steps 2 --cfg 1.0`）。通常の 10 ステップに比べて大幅に高速ですが、seed が同じでもスケジューラーが異なるため別の画像になります。
+
+| 256x256 (0m04s) | 512x512 (0m31s) |
+|:---:|:---:|
+| ![lcm-256x256](lcm-256x256.jpg) | ![lcm-512x512](lcm-512x512.jpg) |
+
 ## miniSD
 
 モデル: https://huggingface.co/webui/miniSD （[justinpinkney/miniSD](https://huggingface.co/justinpinkney/miniSD) の safetensors 変換版）

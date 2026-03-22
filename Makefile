@@ -14,6 +14,7 @@ help:
 	@echo "  make download-sd15    - Download Stable Diffusion 1.5"
 	@echo "  make download-minisd  - Download miniSD"
 	@echo "  make download-any5    - Download Anything V5"
+	@echo "  make download-lcm     - Download LCM LoRA"
 	@echo "  make run              - Run generation with default prompt"
 	@echo "  make samples          - Generate sample images for all models (requires all weights)"
 	@echo "  make clean            - Remove all downloaded weights"
@@ -44,6 +45,11 @@ download-any5:
 	$(call download_model,$(ANY5_ID),$(ANY5_ST))
 	uv run single2dir.py --bits 16 weights/$(ANY5_ID)/$(ANY5_ST)
 
+LCM_LORA_ID = latent-consistency/lcm-lora-sdv1-5
+
+download-lcm:
+	$(call download_model,$(LCM_LORA_ID),pytorch_lora_weights.safetensors)
+
 OPTIONS = -p "a cat sitting on a windowsill" --steps 10 --cfg 7.5
 
 run:
@@ -54,6 +60,8 @@ SAMPLE_OPTS = $(OPTIONS) --seed 123
 samples:
 	uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 $(SAMPLE_OPTS) -W 256 -H 256 -o samples/sd15-256x256.jpg
 	uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 $(SAMPLE_OPTS) -W 512 -H 512 -o samples/sd15-512x512.jpg
+	uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 $(SAMPLE_OPTS) --lora weights/$(LCM_LORA_ID)/pytorch_lora_weights.safetensors --lcm --steps 2 --cfg 1.0 -W 256 -H 256 -o samples/lcm-256x256.jpg
+	uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 $(SAMPLE_OPTS) --lora weights/$(LCM_LORA_ID)/pytorch_lora_weights.safetensors --lcm --steps 2 --cfg 1.0 -W 512 -H 512 -o samples/lcm-512x512.jpg
 	uv run my-sd15 -m webui/miniSD $(SAMPLE_OPTS) -W 256 -H 256 -o samples/minisd-256x256.jpg
 	uv run my-sd15 -m webui/miniSD $(SAMPLE_OPTS) -W 512 -H 512 -o samples/minisd-512x512.jpg
 	uv run my-sd15 -m genai-archive/anything-v5 $(SAMPLE_OPTS) -W 256 -H 256 -o samples/any5-256x256.jpg
