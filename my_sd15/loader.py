@@ -72,6 +72,20 @@ def _resolve_weights_dir(model_id=None):
     return os.path.join(weights_base, model_id)
 
 
+def resolve_lora_path(lora_path):
+    """Resolve lora_path to a .safetensors file.
+
+    If lora_path points to an existing file, return it as-is.
+    Otherwise, treat it as a model_id under weights/ and search for
+    pytorch_lora_weights.safetensors inside that directory.
+    """
+    if os.path.isfile(lora_path):
+        return lora_path
+    weights_base = os.path.normpath(os.path.join(os.path.dirname(DEFAULT_WEIGHTS_DIR), ".."))
+    candidate = os.path.join(weights_base, lora_path, "pytorch_lora_weights.safetensors")
+    return candidate
+
+
 def load_model(model_id=None, lora_path=None, lora_scale=1.0, scheduler=None):
     """Load all SD 1.5 components and return an SD15Model instance."""
     from my_sd15.model import SD15Model
@@ -79,6 +93,8 @@ def load_model(model_id=None, lora_path=None, lora_scale=1.0, scheduler=None):
     from my_sd15.tokenizer import CLIPTokenizer
 
     weights_dir = _resolve_weights_dir(model_id)
+    if lora_path is not None:
+        lora_path = resolve_lora_path(lora_path)
 
     tokenizer_dir = os.path.join(weights_dir, "tokenizer")
     if not os.path.isdir(tokenizer_dir):

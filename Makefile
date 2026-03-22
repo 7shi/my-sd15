@@ -58,7 +58,7 @@ run:
 
 SEED = --seed 123
 SAMPLE_OPTS = $(OPTIONS) $(SEED)
-LCM_OPTS = $(PROMPT) --steps 3 --cfg 1 $(SEED) --lcm --lora weights/$(LCM_ID)/pytorch_lora_weights.safetensors
+LCM_OPTS = $(PROMPT) --steps 3 --cfg 1 $(SEED) --lcm --lora $(LCM_ID)
 
 samples:
 	uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 $(SAMPLE_OPTS) -W 256 -H 256 -o samples/sd15-256x256.jpg

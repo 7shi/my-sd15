@@ -64,6 +64,7 @@ def main():
         print(f"Size adjusted to {w}x{h}")
 
     for i, seed in enumerate(seeds, start=1):
+        loop_start = datetime.now()
         print(f"Generating image ({i}/{len(seeds)}, seed={seed})...")
         image = model.generate(
             prompt=args.prompt,
@@ -83,7 +84,8 @@ def main():
         else:
             output = args.output
         save_image(output, image, show=not args.no_show, mkdir=True)
-        print(f"Saved to {output}")
+        loop_end = datetime.now()
+        print(f"Saved to {output} ({loop_end - loop_start})")
 
     end = datetime.now()
     print(f"Elapsed time: {end - start}")

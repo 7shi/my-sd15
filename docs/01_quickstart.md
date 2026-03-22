@@ -122,7 +122,7 @@ uv run my-sd15 -m genai-archive/anything-v5 -p "a cat sitting on a windowsill" -
 
 ## LCM LoRA による高速生成
 
-LoRA (Low-Rank Adaptation) は、学習済みモデルの重みを少量のパラメータで修正する手法です。ここでは LCM LoRA を使い、通常 10 ステップかかるデノイジングを **2 ステップ**に短縮します。
+LoRA (Low-Rank Adaptation) は、学習済みモデルの重みを少量のパラメータで修正する手法です。ここでは LCM (Latent Consistency Model) LoRA を使い、通常 10 ステップ以上かかるデノイジングを **2～4 ステップ**に短縮します。
 
 まず LCM LoRA の重みをダウンロードします。
 
@@ -134,14 +134,14 @@ make download-lcm
 
 ```bash
 uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 \
-  --lora weights/latent-consistency/lcm-lora-sdv1-5/pytorch_lora_weights.safetensors \
+  --lora latent-consistency/lcm-lora-sdv1-5 \
   --lcm --steps 4 --cfg 1.0 -W 512 -H 512 \
   -p "a cat sitting on a windowsill" --seed 42 -o lcm.png
 ```
 
 ![lcm](01/lcm.png)
 
-通常の SD 1.5 では 10 ステップ以上が必要となる 512×512 の画像が、2～4 ステップで生成できます。LCM LoRA の仕組みについては [12 章](12_lora.md)で詳しく解説します。
+LCM LoRA の仕組みについては [12 章](12_lora.md)で詳しく解説します。
 
 ## まとめ
 

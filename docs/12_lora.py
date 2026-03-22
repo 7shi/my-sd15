@@ -1,45 +1,22 @@
-"""12: LoRA の構造確認と LCM LoRA による画像生成。"""
+"""12: LoRA の構造確認。"""
 
-import struct
-import json
 from collections import Counter
-
-import torch
+from safetensors import safe_open
 
 # === 1. LoRA ファイルの構造 ===
 print("=== 1. LoRA ファイルの構造 ===")
 
 lora_path = "weights/latent-consistency/lcm-lora-sdv1-5/pytorch_lora_weights.safetensors"
-with open(lora_path, "rb") as f:
-    header_size = struct.unpack("<Q", f.read(8))[0]
-    header = json.loads(f.read(header_size))
+with safe_open(lora_path, framework="pt") as f:
+    all_keys = sorted(f.keys())
+    bases = set()
+    for k in all_keys:
+        base = k.replace(".lora_down.weight", "").replace(".lora_up.weight", "").replace(".alpha", "")
+        bases.add(base)
 
-keys = sorted(k for k in header if k != "__metadata__")
-bases = set()
-for k in keys:
-    base = k.replace(".lora_down.weight", "").replace(".lora_up.weight", "").replace(".alpha", "")
-    bases.add(base)
-
-print("各ターゲットのキー:")
-print("  *.alpha              (スカラー: スケーリング係数)")
-print("  *.lora_down.weight   (A 行列: 入力 → r)")
-print("  *.lora_up.weight     (B 行列: r → 出力)")
-print()
-
-# ランクと alpha の確認
-sample_base = sorted(bases)[0]
-down_shape = header[sample_base + ".lora_down.weight"]["shape"]
-rank = down_shape[0]
-
-# alpha の値を読む
-with open(lora_path, "rb") as f:
-    header_size = struct.unpack("<Q", f.read(8))[0]
-    header_bytes = f.read(header_size)
-    header = json.loads(header_bytes)
-    alpha_key = sample_base + ".alpha"
-    start, end = header[alpha_key]["data_offsets"]
-    f.seek(8 + header_size + start)
-    alpha_val = struct.unpack("<e", f.read(end - start))[0]
+    sample_base = sorted(bases)[0]
+    rank = f.get_tensor(sample_base + ".lora_down.weight").shape[0]
+    alpha_val = f.get_tensor(sample_base + ".alpha").item()
 
 print(f"LoRA ターゲット数: {len(bases)}")
 print(f"ランク r: {rank}, alpha: {alpha_val}, scale: {alpha_val / rank}")
@@ -68,21 +45,22 @@ print()
 
 # === 3. shape の例 ===
 print("=== 3. shape の例 ===")
-# Linear 層の例
-linear_base = [b for b in sorted(bases) if "attn1_to_q" in b][0]
-ld = header[linear_base + ".lora_down.weight"]["shape"]
-lu = header[linear_base + ".lora_up.weight"]["shape"]
-print(f"Linear 層:")
-print(f"  down: {tuple(ld)}, up: {tuple(lu)}")
-print(f"  → delta: ({lu[0]}, {ld[1]})")
+with safe_open(lora_path, framework="pt") as f:
+    # Linear 層の例
+    linear_base = [b for b in sorted(bases) if "attn1_to_q" in b][0]
+    ld = f.get_tensor(linear_base + ".lora_down.weight").shape
+    lu = f.get_tensor(linear_base + ".lora_up.weight").shape
+    print(f"Linear 層:")
+    print(f"  down: {tuple(ld)}, up: {tuple(lu)}")
+    print(f"  → delta: ({lu[0]}, {ld[1]})")
 
-# Conv 層の例
-conv_base = [b for b in sorted(bases) if "resnets" in b and "conv1" in b][0]
-cd = header[conv_base + ".lora_down.weight"]["shape"]
-cu = header[conv_base + ".lora_up.weight"]["shape"]
-print(f"Conv 層:")
-print(f"  down: {tuple(cd)}, up: {tuple(cu)}")
-print(f"  → delta: ({cu[0]}, {cd[1]}, {cd[2]}, {cd[3]})")
+    # Conv 層の例
+    conv_base = [b for b in sorted(bases) if "resnets" in b and "conv1" in b][0]
+    cd = f.get_tensor(conv_base + ".lora_down.weight").shape
+    cu = f.get_tensor(conv_base + ".lora_up.weight").shape
+    print(f"Conv 層:")
+    print(f"  down: {tuple(cd)}, up: {tuple(cu)}")
+    print(f"  → delta: ({cu[0]}, {cd[1]}, {cd[2]}, {cd[3]})")
 print()
 
 # === 4. LCM スケジューラー ===
@@ -93,18 +71,3 @@ lcm = LCMScheduler()
 lcm.set_timesteps(2)
 print(f"タイムステップ (2 steps): {lcm.timesteps.tolist()}")
 print(f"prev_timestep: {lcm._prev_timestep}")
-print()
-
-# === 5. 画像生成 ===
-print("=== 5. 画像生成 (2 steps) ===")
-from my_sd15.loader import load_model
-from my_sd15.model import save_image
-
-model = load_model(lora_path=lora_path, scheduler=LCMScheduler())
-image = model.generate(
-    prompt="a cat sitting on a windowsill",
-    seed=42, steps=2, cfg_scale=1.0,
-    height=512, width=512, show_progress=True,
-)
-save_image("images/lcm_lora.png", image, show=True, mkdir=True)
-print("生成完了: images/lcm_lora.png")
