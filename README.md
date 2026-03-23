@@ -149,9 +149,8 @@ LCM LoRA を適用すると、SD 1.5 で 2～4 ステップの高速生成が可
 
 ```bash
 uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 \
-  --lora latent-consistency/lcm-lora-sdv1-5 \
-  --lcm --steps 3 --cfg 1.0 -W 512 -H 512 \
-  -p "a cat sitting on a windowsill"
+  -p "a cat sitting on a windowsill" -W 512 -H 512 --steps 3 --cfg 1.0 \
+  --lora latent-consistency/lcm-lora-sdv1-5 --lcm
 ```
 
 ![生成例](images/lcm-0684539746.jpg)
@@ -159,8 +158,7 @@ uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 \
 `--vae` で VAE デコーダーを差し替えられます。[TAESD](https://huggingface.co/madebyollin/taesd) は軽量な VAE デコーダーで、画質は落ちますがデコードが高速になります。プレビュー用途に適しています。
 
 ```bash
-uv run my-sd15 -m webui/miniSD --vae madebyollin/taesd \
-  -p "a cat sitting on a windowsill"
+uv run my-sd15 -m webui/miniSD --vae madebyollin/taesd -p "a cat sitting on a windowsill"
 ```
 
 ![生成例](images/taesd-0331458896.jpg)
