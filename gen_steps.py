@@ -8,13 +8,20 @@ from my_sd15.model import decode_to_image, save_image
 
 
 def latents_to_image(latents):
-    """Convert 4-channel latents to 2x2 grayscale: each pixel's 4 components become a 2x2 block."""
+    """Convert 4-channel latents to RGB via additive color blending (R, G, B, Cyan)."""
     c, h, w = latents.shape  # (4, H, W)
-    lo, hi = latents.min(), latents.max()
-    norm = ((latents - lo) / (hi - lo) * 255).byte() if hi > lo else torch.zeros(c, h, w, dtype=torch.uint8)
-    # norm: (4, H, W) -> reshape to (2, 2, H, W) -> permute to (H, 2, W, 2) -> reshape to (2H, 2W)
-    grid = norm.reshape(2, 2, h, w).permute(2, 0, 3, 1).reshape(h * 2, w * 2)
-    return Image.frombytes("L", (grid.shape[1], grid.shape[0]), bytes(grid.contiguous().untyped_storage()))
+    norm = torch.zeros(c, h, w)
+    for i in range(c):
+        std = latents[i].std()
+        if std > 0:
+            norm[i] = ((latents[i] - latents[i].mean()) / std + 1) / 2  # [-1σ,+1σ] -> [0,1]
+    # Color assignments: ch0=Red(1,0,0), ch1=Green(0,1,0), ch2=Blue(0,0,1), ch3=Cyan(0,0.5,0.5)
+    r = norm[0]
+    g = norm[1] + norm[3] * 0.5
+    b = norm[2] + norm[3] * 0.5
+    rgb = torch.stack([r, g, b]).clamp(0.0, 1.0)
+    image = (rgb * 255).byte().permute(1, 2, 0).contiguous()
+    return Image.frombytes("RGB", (w, h), bytes(image.untyped_storage()))
 
 
 def save_show_image(path, image):
