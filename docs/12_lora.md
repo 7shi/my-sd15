@@ -64,25 +64,29 @@ $$W' = W + \frac{\alpha}{r} \cdot BA$$
 マージ後は追加のコストなく通常どおり推論できます。これが LoRA の実用上の大きな利点です。本実装でもこの方式を採用しています。
 
 ```python
-# Linear 層の場合: down (r, n), up (m, r)
-delta = up @ down                     # (m, n)
+# Linear 層の場合: up (m, r) @ down (r, n) -> (m, n)
+delta = up @ down
 state[key] += scale * (alpha / r) * delta
 ```
 
 ## 5. SD 1.5 での適用対象
 
-LoRA は原理上どの線形層にも適用できますが、目的によって適用範囲が異なります。
+LoRA は原理上どの線形層にも適用できますが、SD 1.5 では主に **Text Encoder (CLIP)** と **U-Net** が対象になります。
 
-### スタイル/キャラクター LoRA
+### Text Encoder (CLIP) LoRA
 
-**[Cross-Attention](08_cross_attention.md) の線形層** (`to_q`, `to_k`, `to_v`, `to_out`) だけを変更するのが一般的です。Cross-Attention はテキストと画像の対応関係を決める層なので、ここを変えることで「特定の単語に特定の画像特徴を対応させる」ことができます。
+テキストエンコーダーに LoRA を適用すると、テキストの解釈自体を変えることができます。たとえばキャラクター LoRA では、特定のトークンに新しい概念を紐づけるために、U-Net と Text Encoder の両方に LoRA を適用することがあります。LoRA ファイル内では U-Net 向けのキーに `lora_unet_`、Text Encoder 向けのキーに `lora_te_` というプレフィックスが付きます。
 
-### LCM LoRA: 全層への適用
+### U-Net LoRA
 
-LCM (Latent Consistency Model) LoRA は、通常 50 ステップ必要なデノイジングを **2〜4 ステップ**に短縮します。これはテキストと画像の対応関係だけでなく、デノイジングプロセス自体を変える必要があるため、U-Net の**ほぼ全層**に LoRA を適用します。
+U-Net は画像生成の中核であり、LoRA の最も一般的な適用先です。スタイル/キャラクター LoRA では [Cross-Attention](08_cross_attention.md) の線形層（`to_q`, `to_k`, `to_v`, `to_out`）だけを変更するのが一般的です。Cross-Attention はテキストと画像の対応関係を決める層なので、ここを変えることで「特定の単語に特定の画像特徴を対応させる」ことができます。
+
+### LCM LoRA: U-Net 全層への適用
+
+本章で扱う LCM (Latent Consistency Model) LoRA は U-Net LoRA の一例です。多ステップの拡散モデルから少ステップで同等の出力を得られるモデルを**蒸留 (distillation)** で学習し、その差分を LoRA として抽出したものです。通常 50 ステップ必要なデノイジングを **2〜4 ステップ**に短縮します。これはテキストと画像の対応関係だけでなく、デノイジングプロセス自体を変える必要があるため、U-Net の**ほぼ全層**に LoRA を適用します。
 
 ```
-適用対象の内訳（LCM LoRA の場合、全 278 箇所）:
+適用対象の内訳（LCM LoRA の場合、U-Net の全 278 箇所）:
 
   ResBlock / Conv                 86
   FFN (GEGLU)                     32
@@ -205,6 +209,8 @@ DDIM との違いをまとめます。
 | `pred_x0` のクランプ | なし | なし |
 
 再ノイズ化に `noise_pred` を使うと、U-Net の出力に含まれる構造的なパターンが次のステップに持ち込まれ、メッシュ状の artifact が蓄積されます。ランダムノイズは全周波数が均等な白色雑音なので、この自己強化フィードバックを断ち切ります。
+
+なお、LCM 論文では boundary condition scaling（$c_{skip}$, $c_{out}$）も定義されていますが、LCM LoRA が使う大きな timestep では恒等変換となるため、本実装では省略しています（詳細は [LCM.md](../LCM.md) 参照）。
 
 ### CFG の扱い
 
