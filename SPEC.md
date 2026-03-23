@@ -334,6 +334,83 @@ if has_upsampler:
 | up_blocks.2 | 512→256 | 256→256 | 256→256 | yes (256) |
 | up_blocks.3 | 256→128 | 128→128 | 128→128 | no |
 
+## 5b. TAESD Decoder (Tiny AutoEncoder)
+
+Alternative lightweight VAE decoder from `madebyollin/taesd`.
+Decodes latent representation (4, H/8, W/8) to image (3, H, W).
+Range of output: approximately [0, 1] (converted to [-1, 1] for pipeline compatibility).
+
+Source: `madebyollin/taesd` on Hugging Face.
+- `config.json`: model configuration
+- `diffusion_pytorch_model.safetensors`: weights (fp32, ~9.4 MB)
+
+### Config (relevant fields)
+- `scaling_factor`: 1.0 (latents are not rescaled, unlike VAE's 0.18215)
+- `act_fn`: "relu"
+- `latent_channels`: 4
+- `decoder_block_out_channels`: [64, 64, 64, 64]
+- `num_decoder_blocks`: [3, 3, 3, 1]
+
+### Scaling factor
+`scaling_factor` is 1.0, so latents are passed without rescaling.
+
+### Input clamping
+The input latents must be clamped to `[-3, 3]` before decoding.
+Without this, extreme values cause black artifacts in the output.
+This was determined empirically (the diffusers safetensors format
+does not preserve parameterless layers, so the original specification
+of this layer is unknown).
+
+### Architecture overview
+
+All channels are 64 throughout. No Attention, no GroupNorm.
+The decoder is a flat `nn.Sequential` of 19 layers (indices 0-18).
+Gaps in indices (1, 5, 10, 15) are parameterless layers (ReLU, Upsample).
+
+```
+clamp(-3, 3)
+  ──► Conv 3×3 (4→64, pad=1)        [layer 0]
+  ──► ReLU                           [layer 1, no params]
+  ──► TaesdResBlock × 3              [layers 2, 3, 4]
+  ──► Upsample 2×                    [layer 5, no params]
+  ──► Conv 3×3 (64→64, pad=1, no bias) [layer 6]
+  ──► TaesdResBlock × 3              [layers 7, 8, 9]
+  ──► Upsample 2×                    [layer 10, no params]
+  ──► Conv 3×3 (64→64, pad=1, no bias) [layer 11]
+  ──► TaesdResBlock × 3              [layers 12, 13, 14]
+  ──► Upsample 2×                    [layer 15, no params]
+  ──► Conv 3×3 (64→64, pad=1, no bias) [layer 16]
+  ──► TaesdResBlock × 1              [layer 17]
+  ──► Conv 3×3 (64→3, pad=1)        [layer 18]
+  ──► output * 2 - 1                 (convert [0,1] to [-1,1])
+```
+
+### TaesdResBlock
+
+Prefix: `decoder.layers.{i}.`
+- `conv.0.weight`, `conv.0.bias`: (64, 64, 3, 3) — padding=1
+- `conv.2.weight`, `conv.2.bias`: (64, 64, 3, 3) — padding=1
+- `conv.4.weight`, `conv.4.bias`: (64, 64, 3, 3) — padding=1
+
+```
+h = relu(conv2d(x, conv.0))
+h = relu(conv2d(h, conv.2))
+h = conv2d(h, conv.4)
+return relu(h + x)
+```
+
+Indices 0, 2, 4 correspond to `nn.Sequential` positions (1 and 3 are ReLU).
+Skip connection is identity (all channels are 64).
+Activation after skip addition (unlike VaeResBlock).
+
+### Upsample Conv layers (6, 11, 16)
+- `decoder.layers.{i}.weight`: (64, 64, 3, 3) — padding=1, **no bias**
+
+### Weight summary
+- Total keys: 134 (67 encoder + 67 decoder)
+- Total parameters: ~2.4M (decoder: ~1.2M)
+- All weights are fp32
+
 ## 6. U-Net
 
 The largest component. Predicts noise given noisy latents, timestep, and

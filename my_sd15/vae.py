@@ -125,6 +125,9 @@ class TaesdDecoder:
         p = "decoder.layers."
         act = self.act_fn
 
+        # Clamp input
+        x = x.clamp(-3, 3)
+
         # Layer 0: Input Conv (4 → 64)
         x = conv2d(x, s[p + "0.weight"], s[p + "0.bias"], padding=1)
 

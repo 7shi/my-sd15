@@ -143,9 +143,9 @@ uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 \
 
 LCM LoRA の仕組みについては [12 章](12_lora.md)で詳しく解説します。
 
-## TAESD による高速プレビュー
+## TAESD による高速化
 
-TAESD (Tiny AutoEncoder) は、VAE デコーダーの軽量版です。`--vae` オプションで通常の VAE と差し替えて使います。
+TAESD (Tiny AutoEncoder) は VAE デコーダーの軽量版で、画像生成の最終段階を高速化します。`--vae` オプションで通常の VAE と差し替えて使います。
 
 ```bash
 make download-taesd
