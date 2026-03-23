@@ -1,9 +1,20 @@
 """Visualize intermediate latents at each denoising step."""
 
 import torch
+from PIL import Image
 
 from my_sd15.loader import load_model
 from my_sd15.model import decode_to_image, save_image
+
+
+def latents_to_image(latents):
+    """Convert 4-channel latents to 2x2 grayscale: each pixel's 4 components become a 2x2 block."""
+    c, h, w = latents.shape  # (4, H, W)
+    lo, hi = latents.min(), latents.max()
+    norm = ((latents - lo) / (hi - lo) * 255).byte() if hi > lo else torch.zeros(c, h, w, dtype=torch.uint8)
+    # norm: (4, H, W) -> reshape to (2, 2, H, W) -> permute to (H, 2, W, 2) -> reshape to (2H, 2W)
+    grid = norm.reshape(2, 2, h, w).permute(2, 0, 3, 1).reshape(h * 2, w * 2)
+    return Image.frombytes("L", (grid.shape[1], grid.shape[0]), bytes(grid.contiguous().untyped_storage()))
 
 
 def save_show_image(path, image):
@@ -31,7 +42,7 @@ def main():
     with torch.no_grad():
         for i, t in enumerate(model.scheduler.timesteps):
             print(f"step {i}/{steps} (t={int(t)})")
-            save_show_image(f"steps/{i:02d}-1.png", decode_to_image(latents[:3]))
+            save_show_image(f"steps/{i:02d}-1.png", latents_to_image(latents))
             save_show_image(f"steps/{i:02d}-2.jpg", decode_to_image(model.vae(latents / 0.18215)))
 
             t_int = int(t)
@@ -42,7 +53,7 @@ def main():
 
     # Save final result
     print(f"step {steps}/{steps}")
-    save_show_image(f"steps/{steps:02d}-1.png", decode_to_image(latents[:3]))
+    save_show_image(f"steps/{steps:02d}-1.png", latents_to_image(latents))
     save_show_image(f"steps/{steps:02d}-2.jpg", decode_to_image(model.vae(latents / 0.18215)))
     print(f"Saved steps/00-{{1,2}}.png ~ steps/{steps:02d}-{{1,2}}.png")
 
