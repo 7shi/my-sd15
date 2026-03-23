@@ -208,7 +208,7 @@ DDIM との違いをまとめます。
 
 ### CFG の扱い
 
-通常の推論では CFG (Classifier-Free Guidance) のために U-Net を**条件あり・なしの 2 回**呼び出します（[11 章](11_pipeline.md)参照）。LCM LoRA は学習時に CFG の効果を LoRA 内に取り込んでいるため、推論時は `cfg_scale=1.0` とします。これにより U-Net の呼び出しは実質 1 回分の効果しか持たず、ステップ数の削減と合わせて大幅な高速化が得られます。
+通常の推論では CFG (Classifier-Free Guidance) のために U-Net を**条件あり・なしの 2 回**呼び出します（[11 章](11_pipeline.md)参照）。LCM LoRA は学習時に CFG の効果を LoRA 内に取り込んでいるため、推論時は `cfg_scale=1.0` とします。[11 章](11_pipeline.md)で説明したとおり、`cfg_scale=1.0` では CFG の式が $\epsilon_{cond}$ そのものになり、無条件側の U-Net 呼び出しが不要になります。Negative Prompt も効きません。ステップあたりの U-Net 呼び出しが 2 回から 1 回に半減し、ステップ数の削減と合わせて大幅な高速化が得られます。
 
 ## 実験：LCM LoRA の適用
 

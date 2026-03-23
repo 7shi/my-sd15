@@ -18,7 +18,7 @@ class DDIMScheduler:
         ts = torch.round(torch.arange(0, num_steps).float() * step_ratio).long()
         self.timesteps = ts.flip(0)
 
-    def step(self, noise_pred, t, sample):
+    def step(self, noise_pred, t, sample, **kwargs):
         """DDIM step (eta=0, deterministic)."""
         alpha_t = self.alphas_cumprod[t]
         t_prev = t - int(self._step_ratio)

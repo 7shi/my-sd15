@@ -135,11 +135,11 @@ make download-lcm
 ```bash
 uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 \
   --lora latent-consistency/lcm-lora-sdv1-5 \
-  --lcm --steps 4 --cfg 1.0 -W 512 -H 512 \
-  -p "a cat sitting on a windowsill" --seed 42 -o lcm.png
+  --lcm --steps 3 --cfg 1.0 -W 512 -H 512 \
+  -p "a cat sitting on a windowsill" --seed 42 -o lcm.jpg
 ```
 
-![lcm](01/lcm.png)
+![lcm](01/lcm.jpg)
 
 LCM LoRA の仕組みについては [12 章](12_lora.md)で詳しく解説します。
 

@@ -50,9 +50,14 @@ class SD15Model:
         with torch.no_grad():
             for t in tqdm(self.scheduler.timesteps, disable=not show_progress):
                 t_int = int(t)
-                noise_cond = self.unet(latents, t_int, cond_emb)
-                noise_uncond = self.unet(latents, t_int, uncond_emb)
-                noise_pred = noise_uncond + cfg_scale * (noise_cond - noise_uncond)
+                if cfg_scale == 0.0:
+                    noise_pred = self.unet(latents, t_int, uncond_emb)
+                elif cfg_scale == 1.0:
+                    noise_pred = self.unet(latents, t_int, cond_emb)
+                else:
+                    noise_cond = self.unet(latents, t_int, cond_emb)
+                    noise_uncond = self.unet(latents, t_int, uncond_emb)
+                    noise_pred = noise_uncond + cfg_scale * (noise_cond - noise_uncond)
                 latents = self.scheduler.step(noise_pred, t_int, latents, generator=generator)
 
         return decode_to_image(self.vae(latents / 0.18215))
