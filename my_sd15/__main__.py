@@ -19,6 +19,8 @@ def main():
                         help="Number of images to generate")
     parser.add_argument("-o", "--output", type=str, default="output/%s.png",
                         help="Output file path (use %s to include seed)")
+    parser.add_argument("--vae", type=str, default=None,
+                        help="VAE model ID (e.g. madebyollin/taesd)")
     parser.add_argument("--lora", type=str, default=None,
                         help="Path to LoRA safetensors file")
     parser.add_argument("--lora-scale", type=float, default=1.0,
@@ -50,7 +52,8 @@ def main():
 
     print("Loading model...")
     model = load_model(model_id=args.model, lora_path=args.lora,
-                       lora_scale=args.lora_scale, scheduler=scheduler)
+                       lora_scale=args.lora_scale, scheduler=scheduler,
+                       vae=args.vae)
 
     if len(seeds) < args.count:
         seeds += torch.randint(0, 2**30, (args.count - len(seeds),)).tolist()

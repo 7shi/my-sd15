@@ -111,14 +111,16 @@ uv sync
 
 ### モデルのダウンロード
 
-各モデルの重みをダウンロードします。
+各モデルの重みをダウンロードします。すべてをダウンロードすると約 13GB になるため、最小セットから始めることをお勧めします。
 
 ```bash
-make download          # SD 1.5 トークナイザーと miniSD をまとめてダウンロード（最小セット）
+make download          # SD 1.5 トークナイザーと miniSD（最小セット）
+make download-all      # 全モデルをダウンロード
 make download-sd15     # stable-diffusion-v1-5 のみ
 make download-minisd   # webui/miniSD のみ
 make download-any5     # genai-archive/anything-v5 のみ
 make download-lcm      # LCM LoRA のみ
+make download-taesd    # Tiny AutoEncoder (TAESD) のみ
 ```
 
 miniSD のような単一ファイル形式のモデルは、`single2dir.py` で Diffusers 形式（コンポーネント別ディレクトリ）に自動分割されます。
@@ -154,6 +156,15 @@ uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 \
 
 ![生成例](images/lcm-0684539746.jpg)
 
+`--vae` で VAE デコーダーを差し替えられます。[TAESD](https://huggingface.co/madebyollin/taesd) は軽量な VAE デコーダーで、画質は落ちますがデコードが高速になります。プレビュー用途に適しています。
+
+```bash
+uv run my-sd15 -m webui/miniSD --vae madebyollin/taesd \
+  -p "a cat sitting on a windowsill"
+```
+
+![生成例](images/taesd-0331458896.jpg)
+
 ### 主なオプション:
 
 - `-p`, `--prompt`: 生成するテキスト条件（必須）。
@@ -169,6 +180,7 @@ uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 \
 - `--lora`: LoRA のパス。`weights/` 配下のモデル ID（例: `latent-consistency/lcm-lora-sdv1-5`）または safetensors ファイルの直接パスを指定します。
 - `--lora-scale`: LoRA のスケーリング係数（デフォルト: 1.0）。
 - `--lcm`: LCM スケジューラーを使用（LCM LoRA と組み合わせて使用）。
+- `--vae`: VAE デコーダーの差し替え。`weights/` 配下のモデル ID（例: `madebyollin/taesd`）を指定します。
 - `--no-show`: 生成画像をターミナルに表示しません。
 - `--no-progress`: デノイジングの進捗表示を無効にします。
 

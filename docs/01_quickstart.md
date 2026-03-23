@@ -143,6 +143,26 @@ uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 \
 
 LCM LoRA の仕組みについては [12 章](12_lora.md)で詳しく解説します。
 
+## TAESD による高速プレビュー
+
+TAESD (Tiny AutoEncoder) は、VAE デコーダーの軽量版です。`--vae` オプションで通常の VAE と差し替えて使います。
+
+```bash
+make download-taesd
+```
+
+```bash
+uv run my-sd15 -m stable-diffusion-v1-5/stable-diffusion-v1-5 \
+  --lora latent-consistency/lcm-lora-sdv1-5 \
+  --lcm --steps 3 --cfg 1.0 -W 512 -H 512 \
+  --vae madebyollin/taesd \
+  -p "a cat sitting on a windowsill" --seed 42 -o taesd.jpg
+```
+
+![taesd](01/taesd.jpg)
+
+LCM LoRA との併用で最も効果を発揮します。ただし画像はやや不鮮明になるため、まず TAESD で素早く試行錯誤し、気に入った seed やプロンプトが見つかったら通常の VAE（`--vae` なし）で再生成するという使い方がお勧めです。
+
 ## まとめ
 
 この章では SD 1.5 をブラックボックスとして使い、プロンプト・ステップ数・CFG スケール・シード・Negative Prompt・LoRA といったパラメータが生成結果にどう影響するかを体験しました。次章からは、このパイプラインの内部でどのような計算が行われているかを順に解きほぐしていきます。

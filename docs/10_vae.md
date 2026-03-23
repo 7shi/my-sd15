@@ -106,6 +106,74 @@ decoded = model.vae(latents / 0.18215)
 
 この値は VAE の学習時に潜在空間の分散を調整するために導入されたスケーリング係数です。学習済みモデルに固有の定数であり、SD 1.5 では常にこの値を使います。
 
+## 6. TAESD: 軽量 VAE デコーダー
+
+[TAESD (Tiny AutoEncoder for Stable Diffusion)](https://huggingface.co/madebyollin/taesd) は、SD 1.5 の VAE Decoder を蒸留（distillation）で軽量化したモデルです。
+
+### 構造の比較
+
+| | VAE Decoder | TAESD Decoder |
+|---|---|---|
+| パラメータ数 | 約 4,900 万 | 約 120 万（**約 1/40**） |
+| ファイルサイズ | 160 MB (fp16) | 9.4 MB (fp32) |
+| チャネル数 | 512→256→128 | **64 固定** |
+| Attention | あり（Mid block） | **なし** |
+| GroupNorm | あり | **なし** |
+| 活性化関数 | SiLU | **ReLU** |
+| 基本構成 | ResBlock + Attention | **Conv + ReLU のみ** |
+
+TAESD は `nn.Sequential` に 19 層がフラットに格納されたシンプルな構造で、Conv2D と ReLU だけで構成されています。Attention や GroupNorm を排除することで、パラメータ数とデコード時間の両方を大幅に削減しています。
+
+VAE Decoder と同じく 3 回のアップサンプリングで空間サイズを 8 倍に拡大しますが、チャネル数は全層 64 固定で、Attention や GroupNorm は一切使いません。この単純さが軽量化の鍵です。
+
+### 実装の比較
+
+使う基本演算（`conv2d`、`upsample_nearest_2d`）は VAE Decoder と同じですが、構成要素が大幅に削減されています。
+
+**ResBlock**: VAE では GroupNorm → SiLU → Conv を 2 回重ね、skip 後の活性化はありません。TAESD では Conv → ReLU を 3 回重ね、skip 後に ReLU を適用します。
+
+```python
+# VaeResBlock
+h = silu(group_norm(x, ...))
+h = conv2d(h, ...)
+h = silu(group_norm(h, ...))
+h = conv2d(h, ...)
+return x + h
+
+# TaesdResBlock
+h = relu(conv2d(x, ...))
+h = relu(conv2d(h, ...))
+h = conv2d(h, ...)
+return relu(h + x)
+```
+
+**アップサンプル**: VAE ではアップサンプル後に bias 付き Conv を通しますが、TAESD では **bias なし**の Conv です。
+
+```python
+# VaeDecoder
+x = upsample_nearest_2d(x, 2)
+x = conv2d(x, weight, bias, padding=1)
+
+# TaesdDecoder
+x = upsample_nearest_2d(x, 2)
+x = conv2d(x, weight, padding=1)  # bias なし
+```
+
+**出力のスケーリング**: VAE Decoder は `[-1, 1]` 範囲の値を出力しますが、TAESD は `[0, 1]` 範囲で出力するため、後段で変換します。
+
+```python
+# VaeDecoder: そのまま [-1, 1] を出力
+x = silu(group_norm(x, ...))
+x = conv2d(x, ...)
+return x
+
+# TaesdDecoder: [0, 1] → [-1, 1] に変換
+x = conv2d(x, ...)
+return x * 2 - 1
+```
+
+**不要になった演算**: TAESD では `group_norm`、`silu`、`linear`、`softmax` が一切使われません。Attention（`linear` + `softmax`）と正規化（`group_norm`）の除去が、軽量化の最大の要因です。
+
 ## 実験：VAE Decoder の動作確認
 
 VAE Decoder の入出力形状や圧縮率など、本文中の数値を確認するためのスクリプトです。

@@ -5,6 +5,11 @@ import torch
 from my_sd15.ops import conv2d, group_norm, linear, silu, softmax, upsample_nearest_2d
 
 
+def relu(x):
+    """ReLU activation."""
+    return torch.relu(x)
+
+
 class VaeResBlock:
     def __init__(self, state, prefix, c_in, c_out):
         self.state = state
@@ -46,6 +51,8 @@ class VaeAttention:
 
 
 class VaeDecoder:
+    scale_factor = 0.18215
+
     def __init__(self, state):
         self.state = state
 
@@ -82,3 +89,71 @@ class VaeDecoder:
         x = silu(group_norm(x, s["decoder.conv_norm_out.weight"], s["decoder.conv_norm_out.bias"], 32))
         x = conv2d(x, s["decoder.conv_out.weight"], s["decoder.conv_out.bias"], padding=1)
         return x
+
+
+class TaesdResBlock:
+    """TAESD residual block: Conv-ReLU-Conv-ReLU-Conv + skip, then ReLU."""
+
+    def __init__(self, state, prefix, act_fn=relu):
+        self.state = state
+        self.prefix = prefix
+        self.act_fn = act_fn
+
+    def __call__(self, x):
+        s = self.state
+        p = self.prefix
+        h = self.act_fn(conv2d(x, s[p + "conv.0.weight"], s[p + "conv.0.bias"], padding=1))
+        h = self.act_fn(conv2d(h, s[p + "conv.2.weight"], s[p + "conv.2.bias"], padding=1))
+        h = conv2d(h, s[p + "conv.4.weight"], s[p + "conv.4.bias"], padding=1)
+        return self.act_fn(h + x)
+
+
+class TaesdDecoder:
+    """Tiny AutoEncoder (TAESD) decoder.
+
+    Output is converted to [-1, 1] range to match VaeDecoder convention.
+    """
+
+    def __init__(self, state, config):
+        self.state = state
+        self.scale_factor = config.get("scaling_factor", 1.0)
+        act_fn_name = config.get("act_fn", "relu")
+        self.act_fn = {"relu": relu, "silu": silu}[act_fn_name]
+
+    def __call__(self, x):
+        s = self.state
+        p = "decoder.layers."
+        act = self.act_fn
+
+        # Layer 0: Input Conv (4 → 64)
+        x = conv2d(x, s[p + "0.weight"], s[p + "0.bias"], padding=1)
+
+        # Layer 1: ReLU (no parameters)
+        x = act(x)
+
+        # Layers 2-4: ResBlock × 3
+        for i in (2, 3, 4):
+            x = TaesdResBlock(s, p + f"{i}.", act)(x)
+
+        # Layers 5-9: Upsample + Conv + ResBlock × 3
+        x = upsample_nearest_2d(x, 2)
+        x = conv2d(x, s[p + "6.weight"], padding=1)
+        for i in (7, 8, 9):
+            x = TaesdResBlock(s, p + f"{i}.", act)(x)
+
+        # Layers 10-14: Upsample + Conv + ResBlock × 3
+        x = upsample_nearest_2d(x, 2)
+        x = conv2d(x, s[p + "11.weight"], padding=1)
+        for i in (12, 13, 14):
+            x = TaesdResBlock(s, p + f"{i}.", act)(x)
+
+        # Layers 15-17: Upsample + Conv + ResBlock × 1
+        x = upsample_nearest_2d(x, 2)
+        x = conv2d(x, s[p + "16.weight"], padding=1)
+        x = TaesdResBlock(s, p + "17.", act)(x)
+
+        # Layer 18: Output Conv (64 → 3)
+        x = conv2d(x, s[p + "18.weight"], s[p + "18.bias"], padding=1)
+
+        # Convert from [0, 1] to [-1, 1] to match VaeDecoder convention
+        return x * 2 - 1

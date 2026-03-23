@@ -51,6 +51,24 @@ def load_vae_decoder(weights_dir):
     return model
 
 
+def load_taesd_decoder(vae_id):
+    """Load TAESD decoder from weights and config."""
+    import json
+    from my_sd15.vae import TaesdDecoder
+
+    weights_base = os.path.normpath(os.path.join(os.path.dirname(DEFAULT_WEIGHTS_DIR), ".."))
+    vae_dir = os.path.join(weights_base, vae_id)
+
+    config_path = os.path.join(vae_dir, "config.json")
+    with open(config_path) as f:
+        config = json.load(f)
+
+    path = os.path.join(vae_dir, "diffusion_pytorch_model.safetensors")
+    state = load_safetensors(path)
+    model = TaesdDecoder(state, config)
+    return model
+
+
 def load_unet(weights_dir, lora_path=None, lora_scale=1.0):
     """Load U-Net from weights, optionally applying LoRA."""
     from my_sd15.unet import UNet
@@ -86,7 +104,7 @@ def resolve_lora_path(lora_path):
     return candidate
 
 
-def load_model(model_id=None, lora_path=None, lora_scale=1.0, scheduler=None):
+def load_model(model_id=None, lora_path=None, lora_scale=1.0, scheduler=None, vae=None):
     """Load all SD 1.5 components and return an SD15Model instance."""
     from my_sd15.model import SD15Model
     from my_sd15.scheduler import DDIMScheduler
@@ -103,8 +121,11 @@ def load_model(model_id=None, lora_path=None, lora_scale=1.0, scheduler=None):
     tokenizer = CLIPTokenizer.from_pretrained(tokenizer_dir)
     text_encoder = load_clip_text_model(weights_dir)
     unet = load_unet(weights_dir, lora_path=lora_path, lora_scale=lora_scale)
-    vae = load_vae_decoder(weights_dir)
+    if vae is not None:
+        vae_decoder = load_taesd_decoder(vae)
+    else:
+        vae_decoder = load_vae_decoder(weights_dir)
     if scheduler is None:
         scheduler = DDIMScheduler()
 
-    return SD15Model(tokenizer=tokenizer, text_encoder=text_encoder, unet=unet, vae=vae, scheduler=scheduler)
+    return SD15Model(tokenizer=tokenizer, text_encoder=text_encoder, unet=unet, vae=vae_decoder, scheduler=scheduler)

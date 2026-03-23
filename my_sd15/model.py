@@ -60,4 +60,4 @@ class SD15Model:
                     noise_pred = noise_uncond + cfg_scale * (noise_cond - noise_uncond)
                 latents = self.scheduler.step(noise_pred, t_int, latents, generator=generator)
 
-        return decode_to_image(self.vae(latents / 0.18215))
+        return decode_to_image(self.vae(latents / self.vae.scale_factor))
