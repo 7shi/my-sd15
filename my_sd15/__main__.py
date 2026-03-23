@@ -2,19 +2,25 @@ def main():
     """CLI entry point."""
     import argparse
     from my_sd15 import __version__
-    parser = argparse.ArgumentParser(description="SD 1.5 text-to-image")
+    parser = argparse.ArgumentParser(description="SD 1.5 text-to-image",
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
-    parser.add_argument("-p", "--prompt", type=str, required=True)
+    parser.add_argument("-p", "--prompt", type=str, required=True,
+                        help="Text prompt for image generation")
     parser.add_argument("-n", "--negative", type=str, default="",
                         help="Negative prompt")
     parser.add_argument("-m", "--model", type=str, default="webui/miniSD",
                         help="Model ID under weights/ (e.g. genai-archive/anything-v5)")
     parser.add_argument("-s", "--seed", type=int, action="append", dest="seeds",
                         help="Random seed (can be specified multiple times)")
-    parser.add_argument("-S", "--steps", type=int, default=10)
-    parser.add_argument("-C", "--cfg", type=float, default=7.5)
-    parser.add_argument("-W", "--width", type=int, default=256)
-    parser.add_argument("-H", "--height", type=int, default=256)
+    parser.add_argument("-S", "--steps", type=int, default=10,
+                        help="Number of denoising steps")
+    parser.add_argument("-C", "--cfg", type=float, default=7.5,
+                        help="Classifier-free guidance scale")
+    parser.add_argument("-W", "--width", type=int, default=256,
+                        help="Image width in pixels")
+    parser.add_argument("-H", "--height", type=int, default=256,
+                        help="Image height in pixels")
     parser.add_argument("-c", "--count", type=int, default=1,
                         help="Number of images to generate")
     parser.add_argument("-o", "--output", type=str, default="output/%s.png",
