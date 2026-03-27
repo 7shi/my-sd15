@@ -35,25 +35,40 @@ prev_sample = sqrt(alpha_t_prev) * pred_x0 + sqrt(1 - alpha_t_prev) * noise
 
 ## 初期実装（ae87882）
 
-LCMScheduler は LoRA サポートの一部として `ae87882` で初めて実装されました。初期の `step()` 関数は次のようなものでした。
+LCMScheduler は LoRA サポートの一部として `ae87882` で初めて実装されました。出発点となった DDIM の `step()` は次のようなものです。
 
 ```python
 def step(self, noise_pred, t, sample):
     alpha_t = self.alphas_cumprod[t]
-    t_prev = self._prev_timestep[t]
+    t_prev = t - int(self._step_ratio)
     alpha_t_prev = self.alphas_cumprod[t_prev] if t_prev >= 0 else torch.tensor(1.0)
 
     pred_x0 = (sample - sqrt(1 - alpha_t) * noise_pred) / sqrt(alpha_t)
-    pred_x0 = pred_x0.clamp(-1.0, 1.0)
     prev_sample = sqrt(alpha_t_prev) * pred_x0 + sqrt(1 - alpha_t_prev) * noise_pred
     return prev_sample
 ```
 
-この実装は DDIM の `step()` をほぼそのまま流用したもので、3 つの問題を含んでいました。
+初期 LCM 実装は、DDIM から 2 点を変更した以外は同一でした。
 
-第一に、再ノイズ化に U-Net の出力 `noise_pred` をそのまま使っています。第二に、`pred_x0` に `clamp(-1, 1)` を適用しています。第三に、最終ステップの分岐がなく、`alpha_t_prev = 1.0` を代入することで数式的にノイズ項がゼロになることに依存しています。
+```python
+def step(self, noise_pred, t, sample):
+    alpha_t = self.alphas_cumprod[t]
+    t_prev = self._prev_timestep[t]  # 変更: テーブル参照
+    alpha_t_prev = self.alphas_cumprod[t_prev] if t_prev >= 0 else torch.tensor(1.0)
+
+    pred_x0 = (sample - sqrt(1 - alpha_t) * noise_pred) / sqrt(alpha_t)
+    pred_x0 = pred_x0.clamp(-1.0, 1.0)  # 追加
+    prev_sample = sqrt(alpha_t_prev) * pred_x0 + sqrt(1 - alpha_t_prev) * noise_pred
+    return prev_sample
+```
+
+`t_prev` の算出をテーブル参照に変更したのは LCM が非等間隔のタイムステップを使うためで、`pred_x0.clamp(-1.0, 1.0)` の追加は latent の値域を制限する意図でした。
+
+しかし DDIM と LCM では再ノイズ化の意味が異なるため、この流用には問題がありました。
 
 ![lcm-1.jpg](lcm-1.jpg)
+
+画像全体にメッシュ状のノイズパターンが発生しています。
 
 ## 修正 1：再ノイズ化とステップ分岐（2840190）
 
@@ -61,7 +76,7 @@ def step(self, noise_pred, t, sample):
 
 再ノイズ化について、`noise_pred` を `torch.randn_like()` に置き換えました。`noise_pred` は U-Net の出力であり、画像の構造に対応した空間的パターンを含んでいます。このパターンを含んだノイズで再ノイズ化すると、次のステップの U-Net がまた似たパターンを予測し、それがさらに次のステップに持ち込まれるという自己強化フィードバックが発生します。結果として、メッシュ状のノイズが画像全体に蓄積されます。ランダムノイズは全周波数が均等な白色雑音なので、このフィードバックループを断ち切ります。
 
-最終ステップの処理については、`t_prev >= 0` の分岐を追加し、最終ステップでは `pred_x0` をそのまま返すようにしました。初期実装では `alpha_t_prev = 1.0` とすることで `sqrt(1 - 1.0) * noise = 0` となりノイズ項が消えるという暗黙の処理に頼っていましたが、再ノイズ化をランダムノイズに変更したことで、明示的な分岐が必須になりました。最終ステップでランダムノイズを加えてしまうと、出力画像にノイズが残ります。
+最終ステップの処理については、`t_prev >= 0` の分岐を追加し、最終ステップでは `pred_x0` をそのまま返すようにしました。DDIM では `alpha_t_prev = 1.0` とすることで `sqrt(1 - 1.0) * noise = 0` となりノイズ項が消えるという暗黙の処理に頼っていましたが、再ノイズ化をランダムノイズに変更したことで、明示的な分岐が必須になりました。最終ステップでランダムノイズを加えてしまうと、出力画像にノイズが残ります。
 
 修正後の `step()` は次のようになりました。
 
@@ -82,6 +97,8 @@ def step(self, noise_pred, t, sample, generator=None):
 ```
 
 ![lcm-2.jpg](lcm-2.jpg)
+
+メッシュ状のノイズは解消されましたが、窓の外の草木がすりガラスのようにぼやけています。
 
 ## 修正 2：clamp の削除（54cd1d0）
 
