@@ -92,7 +92,7 @@ my-sd15/
 ├── docs/              # 技術解説ドキュメント (.md) と実験スクリプト (.py)
 ├── PLAN.md            # プロジェクトの全体計画と実装の段階的なロードマップ
 ├── SPEC.md            # 推論パイプラインの仕様書（各コンポーネントの入出力の形状）
-├── LCM.md             # LCMScheduler の実装と修正の経緯
+├── lcm-scheduler/     # LCMScheduler の実装と修正の経緯
 ├── single2dir.py      # 単一ファイル形式のモデルを Diffusers 形式に変換するスクリプト
 └── pyproject.toml     # プロジェクト設定 (hatchling)
 ```

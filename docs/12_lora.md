@@ -210,7 +210,7 @@ DDIM との違いをまとめます。
 
 再ノイズ化に `noise_pred` を使うと、U-Net の出力に含まれる構造的なパターンが次のステップに持ち込まれ、メッシュ状のノイズが蓄積されます。ランダムノイズは全周波数が均等な白色雑音なので、この自己強化フィードバックを断ち切ります。
 
-なお、LCM 論文では boundary condition scaling（$c_{skip}$, $c_{out}$）も定義されていますが、LCM LoRA が使う大きな timestep では恒等変換となるため、本実装では省略しています（詳細は [LCM.md](../LCM.md) 参照）。
+なお、LCM 論文では boundary condition scaling（$c_{skip}$, $c_{out}$）も定義されていますが、LCM LoRA が使う大きな timestep では恒等変換となるため、本実装では省略しています（詳細は [lcm-scheduler/README.md](../lcm-scheduler/README.md) 参照）。
 
 ### CFG の扱い
 

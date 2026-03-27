@@ -53,6 +53,8 @@ def step(self, noise_pred, t, sample):
 
 第一に、再ノイズ化に U-Net の出力 `noise_pred` をそのまま使っています。第二に、`pred_x0` に `clamp(-1, 1)` を適用しています。第三に、最終ステップの分岐がなく、`alpha_t_prev = 1.0` を代入することで数式的にノイズ項がゼロになることに依存しています。
 
+![lcm-1.jpg](lcm-1.jpg)
+
 ## 修正 1：再ノイズ化とステップ分岐（2840190）
 
 最初の修正は 2 つの問題を同時に解決しました。
@@ -79,6 +81,8 @@ def step(self, noise_pred, t, sample, generator=None):
         return pred_x0
 ```
 
+![lcm-2.jpg](lcm-2.jpg)
+
 ## 修正 2：clamp の削除（54cd1d0）
 
 残る問題は `pred_x0.clamp(-1.0, 1.0)` でした。画像のピクセル値は `[-1, 1]` の範囲に正規化されますが、VAE エンコード後の latent space の値はこの範囲を日常的に超えます。`pred_x0` は latent space 上の値なので、`[-1, 1]` でクランプすると、範囲外の値が切り捨てられて細部の情報が失われます（窓の外の草がすりガラスのように不鮮明になる等）。DDIM の `step()` にも同様のクランプはなく、不要と判断して削除しました。
@@ -101,6 +105,8 @@ def step(self, noise_pred, t, sample, generator=None):
 ```
 
 なお、当初は論文に基づいて boundary condition scaling（c_skip, c_out）を追加してみたのですが、大きな timestep では恒等変換となり効果がありませんでした。
+
+![lcm-3.jpg](lcm-3.jpg)
 
 ## 補足：DDIM では問題にならなかった理由
 
