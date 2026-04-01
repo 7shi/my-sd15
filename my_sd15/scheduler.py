@@ -23,7 +23,6 @@ class DDIMScheduler:
         alpha_t = self.alphas_cumprod[t]
         t_prev = t - int(self._step_ratio)
         alpha_t_prev = self.alphas_cumprod[t_prev] if t_prev >= 0 else torch.tensor(1.0)
-
         pred_x0 = (sample - torch.sqrt(1.0 - alpha_t) * noise_pred) / torch.sqrt(alpha_t)
         prev_sample = torch.sqrt(alpha_t_prev) * pred_x0 + torch.sqrt(1.0 - alpha_t_prev) * noise_pred
         return prev_sample
@@ -53,9 +52,7 @@ class LCMScheduler:
     def step(self, noise_pred, t, sample, generator=None):
         """LCM step: predict z0, then re-noise with random noise (Algorithm 2)."""
         alpha_t = self.alphas_cumprod[t]
-
         pred_x0 = (sample - torch.sqrt(1.0 - alpha_t) * noise_pred) / torch.sqrt(alpha_t)
-
         if t == self.timesteps[-1]:
             return pred_x0
         else:

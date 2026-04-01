@@ -116,7 +116,6 @@ def step(self, noise_pred, t, sample):
     alpha_t = self.alphas_cumprod[t]
     t_prev = t - int(self._step_ratio)
     alpha_t_prev = self.alphas_cumprod[t_prev] if t_prev >= 0 else torch.tensor(1.0)
-
     # x_0 の予測
     pred_x0 = (sample - torch.sqrt(1.0 - alpha_t) * noise_pred) / torch.sqrt(alpha_t)
     # 前のステップの計算
