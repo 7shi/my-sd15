@@ -150,13 +150,16 @@ LCM LoRA を使うには、DDIM とは異なるスケジューラーが必要で
 
 ### タイムステップの選択
 
-DDIM は 1000 ステップを等間隔に間引きます（10 ステップなら `[900, 800, ..., 0]`）。LCM は学習時の `original_steps`（通常 50）に基づいてタイムステップを選びます。
+DDIM は 1000 ステップを等間隔に間引きます（10 ステップなら `[900, 800, ..., 0]`）。LCM は学習時の `original_steps`（通常 50）に基づく格子点からタイムステップを選びます。これは LCM が consistency distillation で `original_steps` の格子点上で蒸留されているためです。
 
 ```python
 c = 1000 // original_steps  # 20
-# 基準ステップ列: [19, 39, 59, ..., 999]
+# 格子点: [19, 39, 59, ..., 999]
 lcm_timesteps = torch.arange(1, original_steps + 1) * c - 1
-# 等間隔に num_steps 個選択: 例えば 2 ステップなら [999, 499]
+# 逆順から等間隔に num_steps 個を抽出
+skip = len(lcm_timesteps) // num_steps
+timesteps = lcm_timesteps.flip(0)[::skip][:num_steps]
+# 2 ステップなら [999, 499]、4 ステップなら [999, 759, 519, 279]
 ```
 
 ### 前のタイムステップの決定
@@ -169,7 +172,7 @@ DDIM ではタイムステップが等間隔なので、「前のタイムステ
 t_prev = t - int(self._step_ratio)
 ```
 
-LCM のタイムステップは等間隔ではありません（例: `[999, 499]`）。`999 - 20 = 979` としても、それは次のステップ 499 ではなく無関係な値です。LCM では**スケジュール自体から**次のタイムステップを取得する必要があります。
+LCM のタイムステップの間隔は `original_steps` に依存するため、DDIM の `step_ratio` では求められません（例: `[999, 499]` の間隔は 500 で、`step_ratio = 20` とは無関係）。LCM では**スケジュール自体から**次のタイムステップを取得する必要があります。
 
 ```python
 # LCM: スケジュールに沿った prev_timestep テーブルを構築
@@ -181,7 +184,7 @@ for i, t in enumerate(ts_list):
 
 ### ステップ関数（Algorithm 2）
 
-LCM のステップ関数は DDIM と似ていますが、**再ノイズ化の方法が異なります**。DDIM は予測ノイズ `noise_pred` で決定的に再ノイズ化しますが、LCM は**ランダムノイズ**で再ノイズ化します（論文 Algorithm 2: Multistep Latent Consistency Sampling）。
+LCM のステップ関数は DDIM と似ていますが、**ノイズ項の意味が異なります**。DDIM の式は決定論的な常微分方程式 (ODE) ソルバーの一ステップであり、`noise_pred` を使って「タイムステップ `t_prev` でサンプルがどう見えるか」を計算する決定論的な写像です。一方 LCM は `pred_x0` に**ランダムノイズ**を加えて確率的に再拡散する操作です（論文 Algorithm 2: Multistep Latent Consistency Sampling）。
 
 ```python
 def step(self, noise_pred, t, sample, generator=None):

@@ -734,6 +734,10 @@ Same beta schedule and alpha_cumprod as DDIM. No learned parameters.
 Reference: Luo et al., "Latent Consistency Models" (2023), Algorithm 2.
 
 ### Timestep selection
+
+LCM is trained via consistency distillation on a grid of `original_steps` timesteps.
+Inference timesteps must be selected from this grid (not arbitrary divisions of 0-999).
+
 ```
 original_steps = 50
 c = 1000 // original_steps                              # 20
@@ -743,7 +747,7 @@ timesteps = reverse(lcm_timesteps)[::skip][:num_inference_steps]
 ```
 
 For 2 steps: [999, 499]
-For 4 steps: [999, 739, 479, 219]
+For 4 steps: [999, 759, 519, 279]
 
 Previous timestep is looked up from the schedule (not computed by subtraction):
 ```
@@ -752,7 +756,9 @@ prev_timestep = {999: 499, 499: -1}   # example for 2 steps
 
 ### LCM step (Algorithm 2: Multistep Latent Consistency Sampling)
 
-Each step predicts z0 directly, then re-noises with **random noise** (not noise_pred).
+DDIM uses noise_pred as a deterministic ODE step (computing what the sample looks like
+at t_prev). LCM instead re-diffuses pred_x0 with **random noise** (stochastic re-noising).
+This is the key difference: same formula shape, different semantics.
 
 ```
 alpha_t = alpha_cumprod[t]
