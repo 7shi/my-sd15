@@ -89,15 +89,18 @@ def step(self, noise_pred, t, sample):
     return prev_sample
 ```
 
-初期 LCM 実装は、DDIM から 2 点を変更した以外は同一でした。1 つ目は `_step_ratio` を LCM 用の値（`skip * c`）に変えたこと、2 つ目は `pred_x0.clamp(-1.0, 1.0)` を追加したことです。
+初期 LCM 実装は、DDIM から 3 点を変更した以外は同一でした。1 つ目は `_step_ratio` を LCM 用の値（`skip * c`）に変えたこと、2 つ目は最終ステップの判定を `t == self.timesteps[-1]` に変えたこと、3 つ目は `pred_x0.clamp(-1.0, 1.0)` を追加したことです。
 
-`_step_ratio` の変更は、前述のとおり LCM のタイムステップ間隔が DDIM と異なるために必要な変更です。`pred_x0.clamp(-1.0, 1.0)` の追加は latent の値域を制限する意図でした。
+`_step_ratio` と最終ステップ判定の変更は、前述のとおり LCM のタイムステップ間隔が DDIM と異なるために必要な変更です。`pred_x0.clamp(-1.0, 1.0)` の追加は latent の値域を制限する意図でした。
 
 ```python
 def step(self, noise_pred, t, sample):
     alpha_t = self.alphas_cumprod[t]
-    t_prev = t - self._step_ratio  # 変更: LCM 用の step_ratio
-    alpha_t_prev = self.alphas_cumprod[t_prev] if t_prev >= 0 else torch.tensor(1.0)
+    if t == self.timesteps[-1]:         # 変更: LCM 用の最終ステップ判定
+        alpha_t_prev = torch.tensor(1.0)
+    else:
+        t_prev = t - self._step_ratio   # 変更: LCM 用の step_ratio
+        alpha_t_prev = self.alphas_cumprod[t_prev]
 
     pred_x0 = (sample - sqrt(1 - alpha_t) * noise_pred) / sqrt(alpha_t)
     pred_x0 = pred_x0.clamp(-1.0, 1.0)  # 追加
