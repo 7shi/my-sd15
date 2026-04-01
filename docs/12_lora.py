@@ -70,4 +70,4 @@ from my_sd15.scheduler import LCMScheduler
 lcm = LCMScheduler()
 lcm.set_timesteps(2)
 print(f"タイムステップ (2 steps): {lcm.timesteps.tolist()}")
-print(f"prev_timestep: {lcm._prev_timestep}")
+print(f"step_ratio: {lcm._step_ratio}")

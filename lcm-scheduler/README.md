@@ -16,25 +16,36 @@ LCMScheduler の処理は、論文の Algorithm 2 (Multistep Latent Consistency 
 
 ### タイムステップの選択
 
-LCM のタイムステップは DDIM とは異なる方法で選択されます。DDIM では 0〜999 の範囲から `num_steps` 個を等間隔に選びますが、LCM では学習時に使われた `original_steps`（デフォルト 50）に基づく格子点からさらに `num_steps` 個を選びます。これは LCM が consistency distillation という手法で学習されており、モデルが `original_steps` で定義された格子点上で蒸留されているためです。
+LCM のタイムステップは DDIM とは異なる方法で選択されます。
+
+DDIM では 0〜999 の範囲から `num_steps` 個を等間隔に選びます。
+
+1. `step_ratio = 1000 / num_steps` で間隔を求める
+2. `[0, 1, ..., num_steps-1] * step_ratio` を整数に丸めて基準点を生成する
+3. 基準点を逆順にしてタイムステップを得る
+
+`num_steps=15` の場合、`step_ratio = 1000 / 15 ≈ 66.67` となり、丸めにより以下のタイムステップが得られます。
+
+```python
+timesteps = [933, 867, 800, 733, ..., 133, 67, 0]
+```
+
+LCM では学習時に使われた `original_steps`（デフォルト 50）に基づく格子点からさらに `num_steps` 個を選びます。これは LCM が consistency distillation という手法で学習されており、モデルが `original_steps` で定義された格子点上で蒸留されているためです。
 
 具体的な手順は以下のとおりです。
 
 1. `c = 1000 // original_steps` で格子の間隔を求める
-2. `lcm_timesteps = [c-1, 2c-1, ..., 1000-1]` で `original_steps` 個の格子点を生成する
+2. `lcm_timesteps = [c-1, 2c-1, ..., original_steps*c-1]` で `original_steps` 個の格子点を生成する
 3. 格子点を逆順にし、`skip = original_steps // num_steps` 間隔で `num_steps` 個を抽出する
-4. 各タイムステップから次のタイムステップへの対応を辞書に保存する（最後は `-1`）
+4. `step_ratio = skip * c` をステップ間隔として保存する
 
-`num_steps=4` の場合：
+`num_steps=4` の場合、格子点は `c=20` 間隔で 50 個（`[19, 39, 59, ..., 999]`）、そこから `skip=12` 間隔で抽出するので `step_ratio = 12 * 20 = 240` となります。
 
-```
-格子点（50個）: [19, 39, 59, ..., 999]  （間隔 c=20）
-逆順から skip=12 間隔で抽出:
-  timesteps      = [999, 759, 519, 279]
-  _prev_timestep = {999: 759, 759: 519, 519: 279, 279: -1}
+```python
+timesteps = [999, 759, 519, 279]
 ```
 
-DDIM ではステップ間隔が一定（`step_ratio = 1000 / num_steps`）なので `t_prev = t - step_ratio` で次のタイムステップを求められますが、LCM の間隔は `original_steps` に依存するためこの方法が使えません。そこで `set_timesteps()` 時にテーブルを構築し、`step()` ではテーブル参照で `t_prev` を取得します。
+DDIM と同様に `t_prev = t - step_ratio` で次のタイムステップを求めます。DDIM の `step_ratio` は `1000 / num_steps` ですが、LCM では `skip * c` であり、`original_steps` に依存する値になります。すべて整数除算で求まるため、DDIM のような丸め処理は不要です。
 
 ### step() の処理
 
@@ -55,13 +66,17 @@ noise = randn_like(pred_x0)
 prev_sample = sqrt(alpha_t_prev) * pred_x0 + sqrt(1 - alpha_t_prev) * noise
 ```
 
-最終ステップ（`t_prev < 0`）では再ノイズ化は行わず、`pred_x0` をそのまま返します。
+最終ステップ（`t == timesteps[-1]`）では再ノイズ化は行わず、`pred_x0` をそのまま返します。
 
 ここで重要な点が 3 つあります。再ノイズ化には `noise_pred` ではなくランダムノイズを使うこと、最終ステップでは `pred_x0` を直接返すこと、そして `pred_x0` に対して値域のクランプを行わないことです。これらはすべて DDIM との違いであり、初期実装ではいずれも正しく実装されていませんでした。
 
-## 初期実装（ae87882）
+## 初期実装
 
-LCMScheduler は LoRA サポートの一部として `ae87882` で初めて実装されました。出発点となった DDIM の `step()` は次のようなものです。
+:::message
+以下のコード例は、元の実装から動作を変えずに `_prev_timestep` 辞書を `_step_ratio` による算術計算に整理したものです。実際のコミット履歴とは異なります。
+:::
+
+LCMScheduler は LoRA サポートの一部として初めて実装されました。出発点となった DDIM の `step()` は次のようなものです。
 
 ```python
 def step(self, noise_pred, t, sample):
@@ -74,14 +89,14 @@ def step(self, noise_pred, t, sample):
     return prev_sample
 ```
 
-初期 LCM 実装は、DDIM から 2 点を変更した以外は同一でした。1 つ目は `t_prev` の算出をテーブル参照に変えたこと、2 つ目は `pred_x0.clamp(-1.0, 1.0)` を追加したことです。
+初期 LCM 実装は、DDIM から 2 点を変更した以外は同一でした。1 つ目は `_step_ratio` を LCM 用の値（`skip * c`）に変えたこと、2 つ目は `pred_x0.clamp(-1.0, 1.0)` を追加したことです。
 
-`t_prev` のテーブル参照は、前述のとおり LCM のタイムステップ間隔が DDIM の `step_ratio` と異なるために必要な変更です。`pred_x0.clamp(-1.0, 1.0)` の追加は latent の値域を制限する意図でした。
+`_step_ratio` の変更は、前述のとおり LCM のタイムステップ間隔が DDIM と異なるために必要な変更です。`pred_x0.clamp(-1.0, 1.0)` の追加は latent の値域を制限する意図でした。
 
 ```python
 def step(self, noise_pred, t, sample):
     alpha_t = self.alphas_cumprod[t]
-    t_prev = self._prev_timestep[t]  # 変更: テーブル参照
+    t_prev = t - self._step_ratio  # 変更: LCM 用の step_ratio
     alpha_t_prev = self.alphas_cumprod[t_prev] if t_prev >= 0 else torch.tensor(1.0)
 
     pred_x0 = (sample - sqrt(1 - alpha_t) * noise_pred) / sqrt(alpha_t)
@@ -96,37 +111,37 @@ def step(self, noise_pred, t, sample):
 
 画像全体にメッシュ状のノイズパターンが発生しています。
 
-## 修正 1：再ノイズ化とステップ分岐（2840190）
+## 修正 1：再ノイズ化とステップ分岐
 
 メッシュ状ノイズの原因は、再ノイズ化に `noise_pred` を使っていたことです。`noise_pred` は U-Net の出力であり、画像の構造に対応した空間的パターンを含んでいます。このパターンを含んだノイズで再ノイズ化すると、次のステップの U-Net がまた似たパターンを予測し、それがさらに次のステップに持ち込まれるという自己強化フィードバックが発生します。結果としてメッシュ状のノイズが蓄積されます。修正では `noise_pred` を `torch.randn_like()` に置き換えました。ランダムノイズは全周波数が均等な白色雑音なので、このフィードバックループを断ち切ります。
 
 DDIM でも同じ `sqrt(alpha) * pred_x0 + sqrt(1 - alpha) * noise_pred` の形で `noise_pred` を使いますが、こちらでは問題になりません。DDIM のこの式は決定論的な常微分方程式 (ODE) ソルバーの一ステップであり、`noise_pred` は U-Net が推定した「現在のサンプルに含まれているノイズ」です。これを使って「タイムステップ `t_prev` でサンプルがどう見えるか」を計算する決定論的な写像なので、自己強化フィードバックは生じません。一方 LCM の再ノイズ化は `pred_x0` に新たなノイズを加えて確率的に拡散し直す操作であり、ランダムノイズでなければなりません。
 
-最終ステップの処理については、`t_prev >= 0` の分岐を追加し、最終ステップでは再ノイズ化を行わず `pred_x0` をそのまま返すようにしました。DDIM と同様に `alpha_t_prev = 1.0` とすれば `sqrt(1 - 1.0) * noise = 0` でノイズ項は消えるため、分岐なしでも数値的には正しく動作しますが、最終ステップでは係数がゼロになるだけで使われないランダムノイズを生成することになるため、分岐で省略しています。
+最終ステップの処理については、`t == self.timesteps[-1]` の分岐を追加し、最終ステップでは再ノイズ化を行わず `pred_x0` をそのまま返すようにしました。
 
 修正後の `step()` は次のようになりました。
 
 ```python
 def step(self, noise_pred, t, sample, generator=None):
     alpha_t = self.alphas_cumprod[t]
-    t_prev = self._prev_timestep[t]
 
     pred_x0 = (sample - sqrt(1 - alpha_t) * noise_pred) / sqrt(alpha_t)
     pred_x0 = pred_x0.clamp(-1.0, 1.0)
 
-    if t_prev >= 0:
+    if t == self.timesteps[-1]:
+        return pred_x0
+    else:
+        t_prev = t - self._step_ratio
         alpha_t_prev = self.alphas_cumprod[t_prev]
         noise = torch.randn_like(pred_x0, generator=generator)
         return sqrt(alpha_t_prev) * pred_x0 + sqrt(1 - alpha_t_prev) * noise
-    else:
-        return pred_x0
 ```
 
 ![lcm-2.jpg](lcm-2.jpg)
 
 メッシュ状のノイズは解消されましたが、窓の外の草木がすりガラスのようにぼやけています。
 
-## 修正 2：clamp の削除（54cd1d0）
+## 修正 2：clamp の削除
 
 残る問題は `pred_x0.clamp(-1.0, 1.0)` でした。画像のピクセル値は `[-1, 1]` の範囲に正規化されますが、VAE エンコード後の latent space の値はこの範囲を日常的に超えます。`pred_x0` は latent space 上の値なので、`[-1, 1]` でクランプすると、範囲外の値が切り捨てられて細部の情報が失われます（窓の外の草がすりガラスのように不鮮明になる等）。DDIM の `step()` にも同様のクランプはなく、不要と判断して削除しました。
 
@@ -135,16 +150,16 @@ def step(self, noise_pred, t, sample, generator=None):
 ```python
 def step(self, noise_pred, t, sample, generator=None):
     alpha_t = self.alphas_cumprod[t]
-    t_prev = self._prev_timestep[t]
 
     pred_x0 = (sample - sqrt(1 - alpha_t) * noise_pred) / sqrt(alpha_t)
 
-    if t_prev >= 0:
+    if t == self.timesteps[-1]:
+        return pred_x0
+    else:
+        t_prev = t - self._step_ratio
         alpha_t_prev = self.alphas_cumprod[t_prev]
         noise = torch.randn_like(pred_x0, generator=generator)
         return sqrt(alpha_t_prev) * pred_x0 + sqrt(1 - alpha_t_prev) * noise
-    else:
-        return pred_x0
 ```
 
 なお、当初は論文に基づいて boundary condition scaling（c_skip, c_out）を追加してみたのですが、大きな timestep ではほぼ恒等変換となり効果がありませんでした。

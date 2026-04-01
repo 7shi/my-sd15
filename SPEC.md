@@ -749,9 +749,10 @@ timesteps = reverse(lcm_timesteps)[::skip][:num_inference_steps]
 For 2 steps: [999, 499]
 For 4 steps: [999, 759, 519, 279]
 
-Previous timestep is looked up from the schedule (not computed by subtraction):
+Previous timestep is computed using step_ratio = skip * c:
 ```
-prev_timestep = {999: 499, 499: -1}   # example for 2 steps
+step_ratio = skip * c   # e.g. 25 * 20 = 500 for 2 steps
+t_prev = t - step_ratio
 ```
 
 ### LCM step (Algorithm 2: Multistep Latent Consistency Sampling)
@@ -764,15 +765,16 @@ This is the key difference: same formula shape, different semantics.
 alpha_t = alpha_cumprod[t]
 pred_x0 = (sample - sqrt(1 - alpha_t) * noise_pred) / sqrt(alpha_t)
 
-if t_prev >= 0:
+if t == timesteps[-1]:
+    # Final step: return pred_x0 directly
+    prev_sample = pred_x0
+else:
     # Intermediate step: re-noise with random noise
+    t_prev = t - step_ratio
     alpha_t_prev = alpha_cumprod[t_prev]
     noise = randn_like(pred_x0, generator=generator)
     prev_sample = sqrt(alpha_t_prev) * pred_x0
                 + sqrt(1 - alpha_t_prev) * noise
-else:
-    # Final step: return pred_x0 directly
-    prev_sample = pred_x0
 ```
 
 Key differences from DDIM:

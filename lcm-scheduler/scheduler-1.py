@@ -48,16 +48,12 @@ class LCMScheduler:
         # Select num_steps evenly spaced from reversed list
         skip = len(lcm_timesteps) // num_steps
         self.timesteps = lcm_timesteps.flip(0)[::skip][:num_steps]
-        # Build prev_timestep lookup: each timestep maps to the next one (or -1 for last)
-        self._prev_timestep = {}
-        ts_list = self.timesteps.tolist()
-        for i, t in enumerate(ts_list):
-            self._prev_timestep[t] = ts_list[i + 1] if i + 1 < len(ts_list) else -1
+        self._step_ratio = skip * c
 
     def step(self, noise_pred, t, sample, **kwargs):
         """LCM step (deterministic)."""
         alpha_t = self.alphas_cumprod[t]
-        t_prev = self._prev_timestep[t]
+        t_prev = t - self._step_ratio
         alpha_t_prev = self.alphas_cumprod[t_prev] if t_prev >= 0 else torch.tensor(1.0)
 
         pred_x0 = (sample - torch.sqrt(1.0 - alpha_t) * noise_pred) / torch.sqrt(alpha_t)
