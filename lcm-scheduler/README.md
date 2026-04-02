@@ -183,9 +183,9 @@ def step(self, noise_pred, t, sample, generator=None):
         return sqrt(alpha_t_prev) * pred_x0 + sqrt(1 - alpha_t_prev) * noise
 ```
 
-なお、当初は論文に基づいて boundary condition scaling（c_skip, c_out）を追加してみたのですが、大きな timestep ではほぼ恒等変換となり効果がありませんでした。
-
 ![lcm-3.jpg](lcm-3.jpg)
+
+なお、当初は論文に基づいて boundary condition scaling（c_skip, c_out）を追加してみたのですが、大きな timestep ではほぼ恒等変換となり効果がありませんでした。
 
 ## まとめ：DDIM との違い
 
