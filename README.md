@@ -145,7 +145,7 @@ uv run my-sd15 -m genai-archive/anything-v5 -p "a cat sitting on a windowsill"
 
 ![生成例](images/any5-1001330493.jpg)
 
-LCM LoRA を適用すると、SD 1.5 で 2～4 ステップの高速生成が可能です。
+LCM LoRA を適用すると、SD 1.5 で 2～4 ステップの高速生成が可能です。👉[開発中のデバッグ情報](lcm-scheduler/README.md)
 
 ```bash
 uv run my-sd15 --lora latent-consistency/lcm-lora-sdv1-5 --lcm --steps 3 --cfg 1.0 \
