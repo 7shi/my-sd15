@@ -6,6 +6,8 @@
 
 最終章では、SD 1.5 の全体像を振り返り、GPT-2 との構造比較を通じてアーキテクチャの設計思想を整理します。
 
+> この章は推論パイプラインの一区間ではなく、全体を俯瞰する番外編です（03〜11 章にあるパイプライン位置リストはありません）。
+
 ## 1. パイプラインの要約
 
 SD 1.5 の推論パイプラインは、わずか 20 行足らずのコードに集約されます。
@@ -37,7 +39,7 @@ image = vae(latents / 0.18215)                            # (3, 256, 256)
 
 | 概念 | GPT-2 | SD 1.5 |
 |---|---|---|
-| Attention | Self-Attention（12 ヘッド×64 次元） | Self/Cross-Attention（8 or 12 ヘッド） |
+| Attention | Self-Attention（12 ヘッド×64 次元） | Self/Cross-Attention（1 / 8 / 12 ヘッド） |
 | 正規化 | LayerNorm | LayerNorm (CLIP) + GroupNorm (U-Net/VAE)  |
 | 活性化関数 | GELU | SiLU (U-Net/VAE) 、Quick GELU (CLIP) 、GELU (GEGLU)  |
 | 残差接続 | `x = x + f(x)` | `x = x + f(x)`（ResBlock、SpatialTransformer） |

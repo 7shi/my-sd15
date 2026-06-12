@@ -21,7 +21,7 @@ SD 1.5 がテキストに応じた画像を生成できるのは、U-Net 内部�
 
 ## 1. Self-Attention の復習
 
-GPT-2 の Self-Attention（👉[GPT-2 07](https://github.com/7shi/my-gpt2/tree/main/docs/07_attention.md)）では、Q, K, V すべてが**同じ入力**から計算されます。
+GPT-2 の Self-Attention（👉[GPT-2 07](https://github.com/7shi/my-gpt2/blob/main/docs/07_attention.md)）では、Q, K, V すべてが**同じ入力**から計算されます。
 
 ```python
 # Self-Attention: Q, K, V はすべて x から
@@ -100,8 +100,8 @@ GPT-2 の Transformer Block が 2 サブ層 (Attention + MLP) だったのに対
 | サブ層 | GPT-2 | SD 1.5 BasicTransformerBlock |
 |---|---|---|
 | 1 | Self-Attention | Self-Attention (`attn1`, context=None)  |
-| 2 | MLP (GELU)  | Cross-Attention（`attn2`, context=テキスト） |
-| 3 | — | GEGLU FFN |
+| 2 | — | Cross-Attention（`attn2`, context=テキスト） |
+| 3 | MLP (GELU) | GEGLU FFN |
 
 各サブ層は LayerNorm → 変換 → 残差接続の構造で、GPT-2 と同じ Pre-Norm パターンです。
 

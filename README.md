@@ -64,7 +64,7 @@ SD 1.5 は 2022 年に公開された約 10 億パラメータの拡散モデル
 
 ### デノイジング過程の可視化
 
-`gen_steps.py` はデノイジングの各ステップで中間画像を `steps/` に保存します。各ステップで latents の先頭 3 チャンネルをそのまま画像化したもの（`xx-1.png`）と、VAE でデコードしたもの（`xx-2.jpg`）の 2 種類を出力します。生成結果は [steps/README.md](steps/README.md) で確認できます。
+`gen_steps.py` はデノイジングの各ステップで中間画像を `steps/` に保存します。各ステップで latents の 4 成分を赤・緑・青・シアンに割り当てた加法混色で画像化したもの（`xx-1.png`）と、VAE でデコードしたもの（`xx-2.jpg`）の 2 種類を出力します。生成結果は [steps/README.md](steps/README.md) で確認できます。
 
 ## ディレクトリ構成
 
@@ -73,9 +73,9 @@ my-sd15/
 ├── my_sd15/
 │   ├── __init__.py    # CLI エントリポイント
 │   ├── ops.py         # 基本演算（conv2d, group_norm, softmax 等）
-│   ├── tokenizer.py   # CLIP BPE トークナイザ
+│   ├── tokenizer.py   # CLIP BPE トークナイザー
 │   ├── clip.py        # CLIP Text Encoder（12層 Transformer）
-│   ├── scheduler.py   # DDIM / LCM スケジューラ
+│   ├── scheduler.py   # DDIM / LCM スケジューラー
 │   ├── lora.py        # LoRA ローダー（重みマージ）
 │   ├── unet.py        # U-Net（ResBlock, CrossAttention, SpatialTransformer）
 │   ├── vae.py         # VAE Decoder

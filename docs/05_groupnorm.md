@@ -4,7 +4,7 @@
 
 # GroupNorm: チャネル方向の正規化
 
-GPT-2 では LayerNorm がベクトルの各次元を正規化しました（👉[GPT-2 06](https://github.com/7shi/my-gpt2/tree/main/docs/06_layer_norm.md)）。SD 1.5 の画像処理部（U-Net、VAE）では、代わりに **GroupNorm** を使います。
+GPT-2 では LayerNorm がベクトルの各次元を正規化しました（👉[GPT-2 06](https://github.com/7shi/my-gpt2/blob/main/docs/06_layer_norm.md)）。SD 1.5 の画像処理部（U-Net、VAE）では、代わりに **GroupNorm** を使います。
 
 1. テキスト
    - [CLIP Text Encoder](03_clip.md)

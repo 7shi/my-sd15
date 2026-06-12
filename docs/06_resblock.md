@@ -4,7 +4,7 @@
 
 # ResBlock: 残差ブロックの画像版
 
-GPT-2 の Transformer Block では、Attention と MLP の出力を入力に加算する**残差接続**が使われていました（👉[GPT-2 09](https://github.com/7shi/my-gpt2/tree/main/docs/09_residual.md)）。SD 1.5 でも同じ原理が、畳み込みベースの **ResBlock** として使われています。
+GPT-2 の Transformer Block では、Attention と MLP の出力を入力に加算する**残差接続**が使われていました（👉[GPT-2 09](https://github.com/7shi/my-gpt2/blob/main/docs/09_residual.md)）。SD 1.5 でも同じ原理が、畳み込みベースの **ResBlock** として使われています。
 
 1. テキスト
    - [CLIP Text Encoder](03_clip.md)
@@ -113,7 +113,7 @@ def _timestep_embedding(self, timestep):
     return emb
 ```
 
-正弦波エンコーディングの部分は、GPT-2 の位置埋め込み（👉[GPT-2 05](https://github.com/7shi/my-gpt2/tree/main/docs/05_embedding.md)）と同じ発想です。GPT-2 では位置 (0, 1, 2, ...) をベクトルに変換しましたが、ここではタイムステップ (999, 900, 800, ...) をベクトルに変換しています。異なる周波数の正弦波・余弦波を組み合わせることで、タイムステップの値を豊かに表現します。
+位置をベクトルに変換するという点は、GPT-2 の位置埋め込み（👉[GPT-2 05](https://github.com/7shi/my-gpt2/blob/main/docs/05_embedding.md)）と同じ発想です。GPT-2 では位置 (0, 1, 2, ...) をベクトルに変換しましたが、ここではタイムステップ (999, 900, 800, ...) をベクトルに変換しています。ただし GPT-2 の位置埋め込みが**学習されたテーブル**であるのに対し、ここで使う正弦波エンコーディングは Transformer 原論文（Attention Is All You Need）の方式で、異なる周波数の正弦波・余弦波を組み合わせることでタイムステップの値を表現します。
 
 正弦波の後に 2 層の MLP（Linear → SiLU → Linear）を通して 1280 次元に拡張します。この MLP により、モデルはタイムステップ情報を非線形に変換して利用できます。
 

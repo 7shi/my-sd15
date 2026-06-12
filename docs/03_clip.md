@@ -4,7 +4,7 @@
 
 # CLIP Text Encoder: テキストを条件ベクトルに
 
-SD 1.5 のパイプラインは、まずテキストを条件ベクトルに変換するところから始まります。この役割を担うのが **CLIP Text Encoder** です。内部は GPT-2 とほぼ同じ Transformer ですが、トークナイザにいくつかの違いがあります。
+SD 1.5 のパイプラインは、まずテキストを条件ベクトルに変換するところから始まります。この役割を担うのが **CLIP Text Encoder** です。内部は GPT-2 とほぼ同じ Transformer ですが、トークナイザーにいくつかの違いがあります。
 
 1. テキスト
    - **CLIP Text Encoder** ← この章
@@ -19,13 +19,13 @@ SD 1.5 のパイプラインは、まずテキストを条件ベクトルに変�
    - [VAE Decoder](10_vae.md)
 5. 画像
 
-## 1. CLIP トークナイザ
+## 1. CLIP トークナイザー
 
-CLIP トークナイザは GPT-2 と同じバイトレベル BPE を基盤としています。BPE の仕組み自体は「[GPT-2 推論エンジン入門 03](https://github.com/7shi/my-gpt2/tree/main/docs/03_tokenizer.md)」を参照してください。ここでは GPT-2 との違いに焦点を当てます。
+CLIP トークナイザーは GPT-2 と同じバイトレベル BPE を基盤としています。BPE の仕組み自体は「[GPT-2 推論エンジン入門 03](https://github.com/7shi/my-gpt2/blob/main/docs/03_tokenizer.md)」を参照してください。ここでは GPT-2 との違いに焦点を当てます。
 
 ### 小文字化
 
-GPT-2 のトークナイザは大文字・小文字を区別しますが、CLIP は入力テキストを `text.lower()` で小文字に変換してからトークン化します。画像とテキストの対応付けでは大文字・小文字の区別が重要でないためです。
+GPT-2 のトークナイザーは大文字・小文字を区別しますが、CLIP は入力テキストを `text.lower()` で小文字に変換してからトークン化します。画像とテキストの対応付けでは大文字・小文字の区別が重要でないためです。
 
 ### `</w>` サフィックス
 
@@ -74,7 +74,7 @@ CLIP Text Encoder の Transformer は GPT-2 と非常によく似た構造です
 | 活性化関数 | GELU | Quick GELU |
 | 出力 | 最後のトークンの 768 次元 | 全系列 (77, 768) |
 
-Attention の仕組み（Q, K, V の計算、マルチヘッド分割、スケーリング）は GPT-2 と同一です。詳細は「[GPT-2 推論エンジン入門 07](https://github.com/7shi/my-gpt2/tree/main/docs/07_attention.md)」を参照してください。
+Attention の仕組み（Q, K, V の計算、マルチヘッド分割、スケーリング）は GPT-2 と同一です。詳細は「[GPT-2 推論エンジン入門 07](https://github.com/7shi/my-gpt2/blob/main/docs/07_attention.md)」を参照してください。
 
 ### Quick GELU
 

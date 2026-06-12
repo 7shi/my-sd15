@@ -100,7 +100,7 @@ for ...:
     x = resblock(x, temb)      # 結合後のチャネル数から処理
 ```
 
-GPT-2 の残差接続（👉[GPT-2 09](https://github.com/7shi/my-gpt2/tree/main/docs/09_residual.md)）が `x + h` で加算だったのに対し、U-Net のスキップ接続は `torch.cat([x, skip])` で結合です。これにより、エンコーダの詳細な空間情報をデコーダに直接伝えることができます。
+GPT-2 の残差接続（👉[GPT-2 09](https://github.com/7shi/my-gpt2/blob/main/docs/09_residual.md)）が `x + h` で加算だったのに対し、U-Net のスキップ接続は `torch.cat([x, skip])` で結合です。これにより、エンコーダの詳細な空間情報をデコーダに直接伝えることができます。
 
 結合によりチャネル数が倍増するため（例: 1280 + 1280 = 2560）、Up ブロックの最初の ResBlock は結合後のチャネル数を入力として受け取ります。
 
