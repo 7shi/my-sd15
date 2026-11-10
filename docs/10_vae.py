@@ -31,7 +31,7 @@ print()
 print("=== 3. パラメータ数 ===")
 s = model.vae.state
 total = sum(v.numel() for v in s.values())
-print(f"VAE Decoder 総パラメータ: {total:,} ({total / 1e6:.0f}M)")
+print(f"VAE 総パラメータ（Encoder を含む）: {total:,} ({total / 1e6:.0f}M)")
 print()
 
 # 4. スケーリング係数の効果
