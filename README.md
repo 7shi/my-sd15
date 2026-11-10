@@ -40,6 +40,17 @@ docs ディレクトリに、推論パイプラインの処理順序に沿った
 
 - [docs/README.md](docs/README.md)
 
+解説の簡約版を Jupyter Notebook にしたものもあります。
+
+- [abridged.ipynb](abridged.ipynb): パイプライン全体を 1 冊にまとめ、セクションごとのテキストと、動作を確かめるための最小限のコードに分けたものです。上から順に実行できます（miniSD と LCM LoRA の重みが必要です。CPU で 5〜10 分程度かかります）。
+
+依存グループ `notebook`（JupyterLab、matplotlib）を指定して起動します。
+
+```bash
+make download && make download-lcm
+uv run --group notebook jupyter lab abridged.ipynb
+```
+
 ### なぜ PyTorch か
 
 my-gpt2 では NumPy のみで実装しましたが、試験的に同じアルゴリズムの NumPy 版と比べたところ、CPU 実行時の画像生成で PyTorch は約 10 倍高速でした。画像生成はテキスト生成より計算量が桁違いに大きいため、PyTorch を採用しました。ただし原理的な面を説明する目的から、`F.conv2d` 等の高レベル関数は使わず、NumPy と同水準の書き方（行列積、unfold、基本的なテンソル操作）に留めています。
@@ -90,6 +101,7 @@ my-sd15/
 │   └── testdata/      # gen_testdata.py で生成したテストデータ
 ├── tests/             # ユニットテスト (60 テスト)
 ├── docs/              # 技術解説ドキュメント (.md) と実験スクリプト (.py)
+├── abridged.ipynb     # 解説の簡約版を、動かせる Notebook にしたもの
 ├── PLAN.md            # プロジェクトの全体計画と実装の段階的なロードマップ
 ├── SPEC.md            # 推論パイプラインの仕様書（各コンポーネントの入出力の形状）
 ├── lcm-scheduler/     # LCMScheduler の実装と修正の経緯
