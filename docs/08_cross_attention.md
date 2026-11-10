@@ -73,6 +73,38 @@ V: テキスト 77 トークン  それぞれのトークンが渡す情報
 
 なお、GPT-2 の Self-Attention にあった因果マスクは、どちらの Attention にもありません。画像の位置には「前後」がなく、すべての位置が互いを、またテキストの全トークンを参照できます。
 
+### Encoder-Decoder との関係
+
+Cross-Attention は、もともと Transformer の原論文で、Decoder が Encoder の出力を参照するための仕組みとして導入されました（👉[GPT-2 07](https://github.com/7shi/my-gpt2/blob/main/docs/07_attention.md)）。GPT-2 は Decoder だけのモデルなので、Cross-Attention はありませんでした。では、Cross-Attention を使う SD 1.5 には Encoder と Decoder があるのでしょうか。
+
+役割の分担としては、そう読めます。「入力を読んでベクトル列にする側」が CLIP Text Encoder、「それを参照しながら出力を作る側」が U-Net です。
+
+| | 原論文の Transformer（翻訳） | SD 1.5 |
+|---|---|---|
+| 参照される側（K, V を出す） | Encoder: 原文を読む | CLIP Text Encoder: プロンプトを読む |
+| 参照する側（Q を出す） | Decoder: 訳文を生成する | U-Net: ノイズを予測する |
+| 参照される側の実行回数 | 1 回 | 1 回（条件あり・なしで各 1 回） |
+| 参照する側の実行回数 | 生成するトークンの数だけ | デノイジングのステップ数だけ |
+
+参照される側は最初に 1 回だけ実行され、参照する側がその出力を繰り返し読みに行く、という使い方も共通しています。
+
+ただし、原論文の Encoder-Decoder と同じものではありません。違いは次のとおりです。
+
+- **U-Net は Transformer ではありません。** 畳み込みが主体で、その中に SpatialTransformer が挟まっている構造です（👉[07](07_unet.md)）。
+- **U-Net は自己回帰をしません。** 原論文の Decoder は因果マスクを使ってトークンを 1 つずつ生成しますが、U-Net はマスクなしで全位置を同時に更新します。
+- **CLIP Text Encoder には因果マスクがあります。** 原論文の Encoder は前後の両方向を参照しますが、CLIP Text Encoder の中身は GPT-2 と同じ Decoder 型の構造です（👉[03](03_clip.md)）。名前は Encoder でも、構造は逆になっています。
+- **2 つは別々に学習されました。** 原論文では Encoder と Decoder をまとめて学習しますが、SD 1.5 では学習済みの CLIP を凍結して使い、U-Net だけが拡散の学習を受けています。
+
+なお、SD 1.5 には「Encoder / Decoder」と呼ばれるものがほかにもあり、それぞれ意味が異なります。
+
+| 組 | 意味 | つなぐもの |
+|---|---|---|
+| CLIP Text Encoder と U-Net | テキストを読む側と、それを参照して画像を作る側 | Cross-Attention |
+| U-Net の前半と後半 | 空間を縮小する側と、拡大する側（👉[07](07_unet.md)） | スキップ接続 |
+| VAE Encoder と VAE Decoder | 画像を潜在表現に圧縮する側と、復元する側（👉[10](10_vae.md)） | 潜在表現 |
+
+Cross-Attention と対応するのは 1 つ目の組だけです。
+
 ## 3. CrossAttention クラス
 
 Self-Attention と Cross-Attention は、K と V の出所が違うだけです。そのため 1 つのクラスで両方を実装できます。
